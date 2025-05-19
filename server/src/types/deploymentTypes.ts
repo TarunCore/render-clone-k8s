@@ -13,7 +13,7 @@
 //     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 //     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 // );
-export type DeploymentStatus = "pending" | "success" | "failed" | "cancelling" | "cancelled";
+export type DeploymentStatus = "pending" | "initializing" | "success" | "failed" | "cancelling" | "cancelled";
 
 export type Deployment = {
     id: string;

@@ -1,0 +1,100 @@
+"use client"
+import api from '@/components/axios'
+import { Deployment } from '@/types/deploymentTypes';
+import { Button } from '@heroui/button';
+import { useParams } from 'next/navigation';
+import React, { useEffect, useState } from 'react'
+import { Divider } from "@heroui/divider";
+import PullIcon from '@/components/icons/PullIcon';
+import { Link } from '@heroui/link';
+import { Select, SelectSection, SelectItem } from "@heroui/select";
+const branches = [
+    { key: "main", label: "main" },
+    { key: "master", label: "master" },
+]
+
+const ManageDeploymentsPage = () => {
+    const params = useParams<{ id: string }>()
+    const [selectedBranch, setSelectedBranch] = useState("main");
+    const [deployment, setDeployment] = useState<Deployment | null>(null);
+    const [logs, setLogs] = useState<string[]>([]);
+    async function fetchData() {
+        try {
+            const response = await api.get('/deployments/' + params.id);
+            if (response.status === 200) {
+                setDeployment(response.data.data);
+            }
+            console.log(response.data);
+        } catch (err) {
+
+        }
+    }
+
+    useEffect(() => {
+        fetchData();
+    }, [])
+    const { description, status, last_deployed_hash, last_deployed_at, github_url } = deployment || {};
+    useEffect(() => {
+        // simulate fake logs for now ; TODO: stream using websockets
+        // const interval = setInterval(() => {
+        //     setLogs((prevLogs) => [`Log ${prevLogs.length + 1}`, ...prevLogs]);
+        // }, 6000);
+        // return () => clearInterval(interval);
+    }, [])
+    return (
+
+        <div className='flex'>
+            <div className=' w-[30%]'>
+                <h1 className="text-2xl font-bold">Status</h1>
+                <Divider className='my-4' />
+                <div className='flex flex-col gap-1'>
+                    <h2 className="text-md">{"Name: " + deployment?.name}</h2>
+                    <p className="text-gray-400 text-sm">{"Deployment ID: " + params.id}</p>
+                    {description && <p className="text-gray-400 text-sm">{"Description: " + description}</p>}
+                    <Divider className='my-4' />
+                    {status && (
+                        <>
+                            <p className={status === "pending" ? "text-red-400" : "text-green-500"}>
+                                {status}
+                            </p>
+                        </>
+                    )}
+                    <p className="text-gray-400 text-sm">
+                        Last Deployed: {last_deployed_hash || "N/A"}
+                    </p>
+                    <p className="text-gray-400 text-sm">
+                        Last Deployed Time: {last_deployed_at ? new Date(last_deployed_at).toDateString() : "N/A"}
+                    </p>
+                </div>
+            </div>
+            <div>
+                <h2 className="text-2xl font-bold">{"Manage Deployment"}</h2>
+                {/* <Divider className='my-4' /> */}
+                <Link className='text-sm' target='_blank' href={github_url}>{github_url}</Link>
+                <form className="mt-4">
+                    <Select className="max-w-xs" label="Select Branch" isRequired defaultSelectedKeys={["main"]} onChange={(e) => { setSelectedBranch(e.target.value) }}>
+                        {branches.map((branch) => (
+                            <SelectItem key={branch.key}>{branch.label}</SelectItem>
+                        ))}
+                    </Select>
+                    <div className="mt-4">
+                        <Button type='submit' variant='flat' color='success' startContent={PullIcon()}>Pull and Deploy</Button>
+                    </div>
+                </form>
+                <div className=''>
+                    <h2 className="text-2xl font-bold mt-8">Logs</h2>
+                    <Divider className='my-4' />
+                    <div className=' p-4 rounded-md max-h-[30vh] overflow-y-auto'>
+                        {logs.map((log, index) =>{
+                            return (
+                                <p key={index} className='text-sm text-gray-600'>{log}</p>
+                            )
+                        })}
+                    </div>
+                </div>
+            </div>
+        </div>
+    )
+}
+
+export default ManageDeploymentsPage

@@ -19,6 +19,7 @@ migratedown:
 migratecreate:
 	migrate create -ext sql -dir migrations -seq users
 	migrate create -ext sql -dir migrations -seq deployments
-
+reset:
+	make dropdb createdb migrateup
 
 .PHONY: postgresinit postgres createdb dropdb migrateup migratedown

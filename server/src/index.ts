@@ -9,7 +9,10 @@ const app = express();
 
 const PORT = process.env.PORT || 3000;
 
-app.use(cors());
+app.use(cors({
+  origin: "http://localhost:3000",
+  credentials: true,
+}));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -19,7 +22,7 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
 });
 
 app.use("/api/v1/user", userRouter);
-app.use("/api/v1/deploy", deploymentRouter);
+app.use("/api/v1/deployments", deploymentRouter);
 
 app.get("/", (req, res) => {
   res.send("Hello World!");
