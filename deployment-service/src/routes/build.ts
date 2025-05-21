@@ -10,6 +10,7 @@ import stripAnsi from 'strip-ansi';
 
 const PROJECT_VS_IMAGE = {
     "nodejs": "node:22.15",
+    "node-builder": "node-builder",
 }
 
 buildRouter.post("/create", asyncHandler(async (req: Request, res: Response) => {
@@ -40,6 +41,38 @@ buildRouter.post("/create", asyncHandler(async (req: Request, res: Response) => 
       
       res.send({ status: "success", message: "Build created successfully", data: container });
 }));
+
+buildRouter.post("/create/v2", asyncHandler(async (req: Request, res: Response) => {
+    const { github_url, to_deploy_commit_hash, project_type } = req.body;
+    if (!github_url || !to_deploy_commit_hash || !project_type) {
+      return res.status(400).send({ status: "error", message: "Missing required fields" });
+    }
+    const repoName = github_url.split('/').pop()?.replace(/\.git$/, '') || 'repo';
+    const nodeCommand = `
+        git clone ${github_url} && \
+        cd ${repoName} && \
+        pwd && \
+        git checkout ${to_deploy_commit_hash} && \
+        npm install && \
+        touch .env && \
+        echo "MONGO_URI=mongodb://localhost:27017" > .env && \
+        echo "ACCESS_TOKEN_SECRET=adsf" >> .env && \
+        node index.js
+    `;
+    const fullCmd = `build-and-run.sh ${github_url} ${to_deploy_commit_hash} && ls && cd app && ls && ${"node index.js"}`;
+
+    const container = await docker.createContainer({
+      Image: 'node-builder',
+      Cmd: ['/bin/sh', '-c', nodeCommand],
+      name: 'build-'+(Math.floor(Math.random() * 1000)).toString(),
+      Tty: true, //TODO : make it false?
+    });
+    
+      console.log(`Container created with id: ${container.id} and started`);
+      
+      await container.start();
+      res.send({ status: "success", containerId: container.id });
+  }));
 
 
 buildRouter.post("/watch-logs/:containerId", asyncHandler(async (req: Request, res: Response) => {

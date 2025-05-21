@@ -12,6 +12,7 @@ const branches = [
     { key: "main", label: "main" },
     { key: "master", label: "master" },
 ]
+// const ws = new WebSocket('ws://localhost:3001/');
 
 const ManageDeploymentsPage = () => {
     const params = useParams<{ id: string }>()
@@ -41,6 +42,32 @@ const ManageDeploymentsPage = () => {
         // }, 6000);
         // return () => clearInterval(interval);
     }, [])
+    useEffect(() => {
+        if (!params.id) return;
+
+        const ws = new WebSocket('ws://localhost:8080/');
+
+        ws.onopen = () => {
+            ws.send(JSON.stringify({ type: 'frontend-subscribe', deploymentId: params.id }));
+        };
+
+        ws.onmessage = (event) => {
+            const message = event.data;
+            setLogs(prev => [message, ...prev]); // prepend new log to the top
+        };
+
+        ws.onerror = (error) => {
+            console.log("WebSocket error:", error);
+        };
+
+        ws.onclose = () => {
+            console.log("WebSocket closed");
+        };
+
+        return () => {
+            ws.close(); // cleanup on component unmount
+        };
+    }, [params.id]);
     return (
 
         <div className='flex'>
