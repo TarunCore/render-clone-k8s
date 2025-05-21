@@ -25,6 +25,7 @@
     "@heroui/theme": "2.4.15",
     "@react-aria/ssr": "3.9.8",
     "@react-aria/visually-hidden": "3.8.22",
+    "ansi-to-html": "^0.7.2",
     "axios": "^1.9.0",
     "clsx": "2.1.1",
     "framer-motion": "11.13.1",

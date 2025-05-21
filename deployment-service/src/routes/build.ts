@@ -81,7 +81,9 @@ buildRouter.post("/watch-logs/:containerId", asyncHandler(async (req: Request, r
   const logStream = spawn('docker', ['logs', '-f', containerId]);
   console.log("watching logs for: "+containerId);
   logStream.stdout.on('data', (data: any) => {
-    const cleanLogs = stripAnsi(data.toString());
+    // const cleanLogs = stripAnsi(data.toString());
+    const cleanLogs = data.toString();
+
     console.log("cleanLogs");
     socket.send(JSON.stringify({ containerId, logs: cleanLogs, deploymentId: "3", type: "log" }));
   });
