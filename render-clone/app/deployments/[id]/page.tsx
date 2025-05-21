@@ -8,6 +8,7 @@ import { Divider } from "@heroui/divider";
 import PullIcon from '@/components/icons/PullIcon';
 import { Link } from '@heroui/link';
 import { Select, SelectSection, SelectItem } from "@heroui/select";
+import {Spinner} from "@heroui/spinner";
 const branches = [
     { key: "main", label: "main" },
     { key: "master", label: "master" },
@@ -53,7 +54,7 @@ const ManageDeploymentsPage = () => {
 
         ws.onmessage = (event) => {
             const message = event.data;
-            setLogs(prev => [message, ...prev]); // prepend new log to the top
+            setLogs(prev => [...prev, message]); // prepend new log to the top
         };
 
         ws.onerror = (error) => {
@@ -94,7 +95,7 @@ const ManageDeploymentsPage = () => {
                     </p>
                 </div>
             </div>
-            <div>
+            <div className='w-[70%]'>
                 <h2 className="text-2xl font-bold">{"Manage Deployment"}</h2>
                 {/* <Divider className='my-4' /> */}
                 <Link className='text-sm' target='_blank' href={github_url}>{github_url}</Link>
@@ -114,9 +115,10 @@ const ManageDeploymentsPage = () => {
                     <div className=' p-4 rounded-md max-h-[30vh] overflow-y-auto'>
                         {logs.map((log, index) =>{
                             return (
-                                <p key={index} className='text-sm text-gray-600'>{log}</p>
+                                <p key={index} className='text-sm text-gray-100'>{log}</p>
                             )
                         })}
+                        <Spinner />
                     </div>
                 </div>
             </div>

@@ -83,7 +83,7 @@ buildRouter.post("/watch-logs/:containerId", asyncHandler(async (req: Request, r
   logStream.stdout.on('data', (data: any) => {
     const cleanLogs = stripAnsi(data.toString());
     console.log("cleanLogs");
-    socket.send(JSON.stringify({ containerId, logs: cleanLogs }));
+    socket.send(JSON.stringify({ containerId, logs: cleanLogs, deploymentId: "3", type: "log" }));
   });
   res.send({status: "success", message: "Websocket connection initialized to central server" });
 }));

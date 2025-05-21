@@ -34,11 +34,26 @@ app.get("/", (req, res) => {
   await client.connect();
   console.log("Connected to PostgreSQL database");
 })();
+const frontendClients = new Map(); // Map<deploymentId, Set<clientWs>>
 
 wss.on('connection', (ws) => {
   console.log('Client connected');
   ws.on('message', (message) => {
     console.log('Received:', message.toString());
+    const { type, deploymentId, logs } = JSON.parse(message.toString()); //TODO: toString()?
+    
+    if (type === 'log') {
+      // Relay to frontend
+      const clients = frontendClients.get(deploymentId) || new Set();
+      //@ts-ignore
+      clients.forEach(client => client.send(logs));
+    }
+
+    if (type === 'frontend-subscribe') {
+      // Track frontends by deploymentId
+      if (!frontendClients.has(deploymentId)) frontendClients.set(deploymentId, new Set());
+      frontendClients.get(deploymentId).add(ws);
+    }
   });
   ws.send('Hello from server');
 });
