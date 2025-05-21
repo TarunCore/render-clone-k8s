@@ -1,7 +1,8 @@
+import { DEP_MANAGER_BASE_URL } from "../config";
 import { client } from "../db/db";
 import { Deployment } from "../types/deploymentTypes";
 import { z } from "zod";
-
+// import fetch from "node-fetch"
 const createDeploymentSchema = z.object({
     name: z.string().min(1, "Name is required"),
     description: z.string().optional(),
@@ -32,7 +33,14 @@ async function createDeployment(deployment: CreateDeploymentType): Promise<Deplo
     return result.rows[0];
 }
 
-async function startBuild(deploymentId: string): Promise<Deployment | null> {
+async function startBuild(deploymentId: string, to_deploy_commit_hash: string): Promise<Deployment | null> {
+    const deployment = await client.query<Deployment>("SELECT * FROM deployments WHERE id=$1",[deploymentId]);
+    if(deployment.rowCount==0) {throw new Error("Deployment not found")};
+    const {github_url, last_deployed_hash, project_type} = deployment.rows[0];
+    if (last_deployed_hash === to_deploy_commit_hash) {
+        throw new Error("No new commits to deploy")
+    }
+    const askDeploymentManager = await fetch(`${DEP_MANAGER_BASE_URL}/api/v1/build/create`)
     // Support only nodejs backend for now
     // 1. Provision a new container in VM (maybe use k8s in futue. not now)
     // 2. Clone the repo inside the container

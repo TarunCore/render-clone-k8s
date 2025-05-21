@@ -4,6 +4,9 @@ import 'dotenv/config'
 import userRouter from "./routes/user";
 import { client } from "./db/db";
 import deploymentRouter from "./routes/deployment";
+import Websocket from "ws";
+const wss = new Websocket.Server({ port: 8080 });
+
 
 const app = express();
 
@@ -32,7 +35,13 @@ app.get("/", (req, res) => {
   console.log("Connected to PostgreSQL database");
 })();
 
-
+wss.on('connection', (ws) => {
+  console.log('Client connected');
+  ws.on('message', (message) => {
+    console.log('Received:', message.toString());
+  });
+  ws.send('Hello from server');
+});
 
 app.listen(PORT, () => {
     console.log("Server is running on port " + PORT);

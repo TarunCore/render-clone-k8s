@@ -1,5 +1,5 @@
 {
-  "name": "learn-kafka",
+  "name": "deployment-manager",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
@@ -19,10 +19,8 @@
     "jsonwebtoken": "^9.0.2",
     "mongodb": "^6.16.0",
     "nodemon": "^3.1.10",
-    "pg": "^8.15.6",
-    "ts-node": "^10.9.2",
-    "ws": "^8.18.2",
-    "zod": "^3.24.4"
+    "strip-ansi": "^7.1.0",
+    "ts-node": "^10.9.2"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",
@@ -30,8 +28,6 @@
     "@types/dockerode": "^3.3.38",
     "@types/express": "^5.0.1",
     "@types/jsonwebtoken": "^9.0.9",
-    "@types/pg": "^8.15.1",
-    "@types/ws": "^8.18.1",
     "i": "^0.3.7",
     "npm": "^11.3.0"
   }
