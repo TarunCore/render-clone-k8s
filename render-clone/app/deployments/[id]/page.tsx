@@ -8,12 +8,13 @@ import { Divider } from "@heroui/divider";
 import PullIcon from '@/components/icons/PullIcon';
 import { Link } from '@heroui/link';
 import { Select, SelectSection, SelectItem } from "@heroui/select";
-import {Spinner} from "@heroui/spinner";
+import { Spinner } from "@heroui/spinner";
 const branches = [
     { key: "main", label: "main" },
     { key: "master", label: "master" },
 ]
 import AnsiToHtml from 'ansi-to-html';
+import EyeIcon from '@/components/icons/EyeIcon';
 const convert = new AnsiToHtml();
 // const ws = new WebSocket('ws://localhost:3001/');
 
@@ -25,11 +26,16 @@ const ManageDeploymentsPage = () => {
     const [htmlLogs, setHtmlLogs] = useState<string>("");
     const [commits, setCommits] = useState<string[]>([]);
     const [selectedCommit, setSelectedCommit] = useState<string>("");
+    const [builds, setBuilds] = useState<any[]>([]);
     async function fetchData() {
         try {
             const response = await api.get('/deployments/' + params.id);
             if (response.status === 200) {
                 setDeployment(response.data.data);
+            }
+            const buildsResponse = await api.get('/deployments/' + params.id + '/builds');
+            if (buildsResponse.status === 200) {
+                setBuilds(buildsResponse.data.data);
             }
             console.log(response.data);
         } catch (err) {
@@ -48,10 +54,10 @@ const ManageDeploymentsPage = () => {
         // console.log(repoName, repoPath, repoOwner, repo);
         const response = await fetch(`https://api.github.com/repos/${repoName}/commits?per_page=5`, {
             headers: {
-              "Accept": "application/vnd.github+json"
+                "Accept": "application/vnd.github+json"
             }
-          });
-          
+        });
+
         const data = await response.json();
         if (response.status !== 200) {
             console.log("Error fetching commits");
@@ -68,7 +74,7 @@ const ManageDeploymentsPage = () => {
     useEffect(() => {
         fetchCommits();
     }
-    , [deployment])
+        , [deployment])
     useEffect(() => {
         //curl -H "Accept: application/vnd.github+json" https://api.github.com/repos/octocat/Spoon-Knife/commits?per_page=5
         // simulate fake logs for now ; TODO: stream using websockets
@@ -105,6 +111,17 @@ const ManageDeploymentsPage = () => {
             ws.close(); // cleanup on component unmount
         };
     }, [params.id]);
+    const watchLogs = async () => {
+        try {
+            const response = await api.post('/deployments/' + params.id + '/watch-logs');
+            if (response.status === 200) {
+                console.log("Logs watched");
+            }
+        } catch (err) {
+            console.log(err);
+        }
+    }
+
     return (
 
         <div className='flex'>
@@ -115,7 +132,6 @@ const ManageDeploymentsPage = () => {
                     <h2 className="text-md">{"Name: " + deployment?.name}</h2>
                     <p className="text-gray-400 text-sm">{"Deployment ID: " + params.id}</p>
                     {description && <p className="text-gray-400 text-sm">{"Description: " + description}</p>}
-                    <Divider className='my-4' />
                     {status && (
                         <>
                             <p className={status === "pending" ? "text-red-400" : "text-green-500"}>
@@ -129,6 +145,39 @@ const ManageDeploymentsPage = () => {
                     <p className="text-gray-400 text-sm">
                         Last Deployed Time: {last_deployed_at ? new Date(last_deployed_at).toDateString() : "N/A"}
                     </p>
+                    <Divider className='my-4' />
+                    {/* {
+    "status": "success",
+    "data": [
+        {
+            "id": 2,
+            "commit_hash": "070d14023a280924ca30ddd9b4a3e764a2519ce2",
+            "commit_message": "com msg",
+            "status": "pending",
+            "status_message": "Build started",
+            "build_started_at": "2025-05-15T06:51:20.916Z",
+            "build_finished_at": null,
+            "container_id": null,
+            "base_deployment_id": "1"
+        }
+    ]
+} */}
+                    <h1 className="text-xl font-bold">{"Builds " + (builds.length == 0 ? "" : `(${builds.length})`)}</h1>
+                    {/* hide scroll bar */}
+                    <div className='flex flex-col gap-2 overflow-y-auto max-h-[40vh] scrollbar-hide'>
+                        {builds.length === 0 && <p className="text-gray-400 text-sm">No builds found</p>}
+                        {builds.map((build) => {
+                            return <div className='flex flex-col gap-1 border-blue-300 border-2 p-2 rounded-md' key={build.id}>
+                                <p className="text-gray-300 text-sm">{"Build ID: " + build.id}</p>
+                                <p className="text-gray-400 text-sm">{"Commit Hash: " + build.commit_hash}</p>
+                                <p className="text-gray-400 text-sm">{"Commit Message: " + build.commit_message}</p>
+                                <p className="text-gray-400 text-sm">{"Container ID: " + build.container_id.slice(0, 12)}</p>
+                                <p className="text-gray-400 text-sm">{"Status: " + build.status}</p>
+                                <p className="text-gray-400 text-sm">{"Status Message: " + build.status_message}</p>
+                            </div>
+                        })
+                        }
+                    </div>
                 </div>
             </div>
             <div className='w-[70%]'>
@@ -143,7 +192,7 @@ const ManageDeploymentsPage = () => {
                     </Select>
                     <Select className="max-w-xs" label="Select Commit" isRequired defaultSelectedKeys={[]} onChange={(e) => { setSelectedCommit(e.target.value) }}>
                         {commits.map((commit) => (
-                            <SelectItem key={commit}>{commit.substring(0,10)}</SelectItem>
+                            <SelectItem key={commit}>{commit.substring(0, 10)}</SelectItem>
                         ))}
                     </Select>
                     <div className="mt-4">
@@ -151,12 +200,17 @@ const ManageDeploymentsPage = () => {
                     </div>
                 </form>
                 <div className=''>
-                    <h2 className="text-2xl font-bold mt-8">Logs</h2>
+                    <div className='flex items-center gap-2 mt-8'>
+                        <h2 className="text-2xl font-bold">Logs</h2>
+                        <Button isIconOnly aria-label="Watch" color="warning" variant="faded" onClick={watchLogs}>
+                            <EyeIcon/>
+                        </Button>
+                    </div>
                     <Divider className='my-4' />
-                    <div className=' p-4 rounded-md max-h-[30vh] overflow-y-auto'>
-                        {logs.map((log, index) =>{
+                    <div className=' p-4 rounded-md max-h-[42vh] overflow-y-auto'>
+                        {logs.map((log, index) => {
                             return (
-                                <div key={index+"logg"} dangerouslySetInnerHTML={{ __html: log }} />
+                                <div key={index + "logg"} dangerouslySetInnerHTML={{ __html: log }} />
                                 // <p key={index} className='text-sm text-gray-100'>{log}</p>
                             )
                         })}

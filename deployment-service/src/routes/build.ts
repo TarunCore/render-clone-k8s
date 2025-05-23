@@ -3,10 +3,11 @@ const buildRouter = express.Router();
 
 
 import { asyncHandler } from "../util/common";
-import { startBuild } from "../services/buildService";
+import { getUnusedPort, startBuild, stopAndRemove } from "../services/buildService";
 import { docker } from '../docker/docker';
 import { socket } from '../index';
 import stripAnsi from 'strip-ansi';
+import { client } from '../docker/db';
 
 const PROJECT_VS_IMAGE = {
     "nodejs": "node:22.15",
@@ -43,7 +44,7 @@ buildRouter.post("/create", asyncHandler(async (req: Request, res: Response) => 
 }));
 
 buildRouter.post("/create/v2", asyncHandler(async (req: Request, res: Response) => {
-    const { github_url, to_deploy_commit_hash, project_type } = req.body;
+    const { github_url, to_deploy_commit_hash, project_type, deploymentId } = req.body;
     if (!github_url || !to_deploy_commit_hash || !project_type) {
       return res.status(400).send({ status: "error", message: "Missing required fields" });
     }
@@ -60,23 +61,48 @@ buildRouter.post("/create/v2", asyncHandler(async (req: Request, res: Response) 
         node index.js
     `;
     const fullCmd = `build-and-run.sh ${github_url} ${to_deploy_commit_hash} && ls && cd app && ls && ${"node index.js"}`;
-
+    const prevBuilds = await client.query("SELECT * FROM builds WHERE base_deployment_id = $1", [deploymentId]);
+    // kill all previous builds
+    for (const build of prevBuilds.rows) {
+        const container = docker.getContainer(build.container_id);
+        // if stopped skip
+        await stopAndRemove(build.container_id)
+        // update status of buils
+        client.query("UPDATE builds SET status = $1, status_message = $2, build_finished_at = $3 WHERE id = $4", ["cancelled", "Build Deleted as new build started", new Date(), build.id]);
+    }
+    // create a new container
     const container = await docker.createContainer({
       Image: 'node-builder',
       Cmd: ['/bin/sh', '-c', nodeCommand],
       name: 'build-'+(Math.floor(Math.random() * 1000)).toString(),
+      
       Tty: true, //TODO : make it false?
     });
     
       console.log(`Container created with id: ${container.id} and started`);
       
       await container.start();
+    //   id SERIAL PRIMARY KEY,
+    // commit_hash VARCHAR(255) NOT NULL,
+    // commit_message TEXT,
+    // status VARCHAR(50) NOT NULL,
+    // status_message TEXT,
+    // build_started_at TIMESTAMP,
+    // container_id VARCHAR(150),
+    // build_finished_at TIMESTAMP,
+    // base_deployment_id BIGINT
+      const buildData = await client.query(`INSERT INTO builds (status, status_message,build_started_at, 
+        commit_hash, commit_message,base_deployment_id, container_id)
+      VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`, ["pending", "Build started", new Date(), to_deploy_commit_hash, "com msg", deploymentId, container.id]);
+      // TODO: validate buildData
+      await client.query(`UPDATE deployments SET last_build_id = $1, last_deployed_hash = $2, last_deployed_at = $3 WHERE id = $4`, [buildData.rows[0].id, to_deploy_commit_hash, new Date(), deploymentId]);
+      
       res.send({ status: "success", containerId: container.id });
   }));
 
 
-buildRouter.post("/watch-logs/:containerId", asyncHandler(async (req: Request, res: Response) => {
-  const { containerId } = req.params;
+buildRouter.post("/watch-logs/:deploymentId/:containerId", asyncHandler(async (req: Request, res: Response) => {
+  const { containerId, deploymentId } = req.params;
   const spawn = require('child_process').spawn;
   const logStream = spawn('docker', ['logs', '-f', containerId]);
   console.log("watching logs for: "+containerId);
@@ -85,7 +111,7 @@ buildRouter.post("/watch-logs/:containerId", asyncHandler(async (req: Request, r
     const cleanLogs = data.toString();
 
     console.log("cleanLogs");
-    socket.send(JSON.stringify({ containerId, logs: cleanLogs, deploymentId: "3", type: "log" }));
+    socket.send(JSON.stringify({ containerId, logs: cleanLogs, deploymentId, type: "log" }));
   });
   res.send({status: "success", message: "Websocket connection initialized to central server" });
 }));

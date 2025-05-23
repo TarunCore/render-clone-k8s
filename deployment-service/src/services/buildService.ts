@@ -1,6 +1,6 @@
 import Dockerode from "dockerode";
 import { docker } from "../docker/docker";
-
+import portFinder from "portfinder";
 /*
    Takes a containerId and starts the build process
 */
@@ -50,4 +50,35 @@ async function execInContainer(container: Dockerode.Container, cmd: string[]) {
     });
 }
 
-export {startBuild};
+// get a unused port in range 3000-3100
+async function getUnusedPort() {
+    const port = await portFinder.getPortPromise({
+        port: 3006,
+        stopPort: 3050,
+    });
+    return port;
+}
+
+async function stopAndRemove(containerId: string){
+    const container = docker.getContainer(containerId);
+    try {
+        await container.stop(); // If the container is already stopped, this may throw
+      } catch (err: any) {
+        if (err.statusCode !== 304 && err.statusCode !== 404) {
+          // 304: container already stopped, 404: not found
+        //   throw err;
+        }
+      }
+      
+      try {
+        await container.remove(); // Safe to call even if already stopped
+      } catch (err: any) {
+        if (err.statusCode !== 404) {
+          // 404: container already removed or never existed
+        //   throw err;
+        }
+      }
+        console.log(`Container ${containerId} stopped and removed`);
+}
+
+export {startBuild, getUnusedPort, stopAndRemove};

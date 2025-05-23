@@ -5,6 +5,7 @@ import userRouter from "./routes/user";
 import { client } from "./db/db";
 import deploymentRouter from "./routes/deployment";
 import Websocket from "ws";
+import buildRouter from "./routes/builds";
 const wss = new Websocket.Server({ port: 8080 });
 
 
@@ -26,6 +27,7 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
 
 app.use("/api/v1/user", userRouter);
 app.use("/api/v1/deployments", deploymentRouter);
+app.use("/api/v1/builds/", buildRouter)
 
 app.get("/", (req, res) => {
   res.send("Hello World!");
@@ -55,7 +57,7 @@ wss.on('connection', (ws) => {
       frontendClients.get(deploymentId).add(ws);
     }
   });
-  ws.send('Hello from server');
+  ws.send('Hello from WS logs server');
 });
 
 app.listen(PORT, () => {
