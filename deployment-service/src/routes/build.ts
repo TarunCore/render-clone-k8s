@@ -64,40 +64,43 @@ buildRouter.post("/create/v2", asyncHandler(async (req: Request, res: Response) 
     const prevBuilds = await client.query("SELECT * FROM builds WHERE base_deployment_id = $1", [deploymentId]);
     // kill all previous builds
     for (const build of prevBuilds.rows) {
-        const container = docker.getContainer(build.container_id);
-        // if stopped skip
-        await stopAndRemove(build.container_id)
-        // update status of buils
+        if(build.status=="cancelled") continue;
+        stopAndRemove(build.container_id); // TODO: this takes lot of time with await. check it
         client.query("UPDATE builds SET status = $1, status_message = $2, build_finished_at = $3 WHERE id = $4", ["cancelled", "Build Deleted as new build started", new Date(), build.id]);
     }
+    const port = await getUnusedPort();
     // create a new container
+
     const container = await docker.createContainer({
       Image: 'node-builder',
       Cmd: ['/bin/sh', '-c', nodeCommand],
       name: 'build-'+(Math.floor(Math.random() * 1000)).toString(),
-      
+      ExposedPorts: {
+        [`3000/tcp`]: {}, // TODO: Get port number from user
+      },
       Tty: true, //TODO : make it false?
+      HostConfig: {
+        PortBindings: {
+          [`3000/tcp`]: [
+            {
+              HostPort: `${port}`,
+            },
+          ],
+        },
+      },
     });
     
-      console.log(`Container created with id: ${container.id} and started`);
+      console.log(`Container created id: ${container.id} and started with port: ${port}=>3000`);
       
       await container.start();
-    //   id SERIAL PRIMARY KEY,
-    // commit_hash VARCHAR(255) NOT NULL,
-    // commit_message TEXT,
-    // status VARCHAR(50) NOT NULL,
-    // status_message TEXT,
-    // build_started_at TIMESTAMP,
-    // container_id VARCHAR(150),
-    // build_finished_at TIMESTAMP,
-    // base_deployment_id BIGINT
       const buildData = await client.query(`INSERT INTO builds (status, status_message,build_started_at, 
         commit_hash, commit_message,base_deployment_id, container_id)
       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`, ["pending", "Build started", new Date(), to_deploy_commit_hash, "com msg", deploymentId, container.id]);
       // TODO: validate buildData
       await client.query(`UPDATE deployments SET last_build_id = $1, last_deployed_hash = $2, last_deployed_at = $3 WHERE id = $4`, [buildData.rows[0].id, to_deploy_commit_hash, new Date(), deploymentId]);
-      
-      res.send({ status: "success", containerId: container.id });
+      const randomString = Math.random().toString(36).substring(2, 9);
+      await client.query(`INSERT INTO domains (sub_domain, deployment_id, ip, port) VALUES($1, $2, $3, $4)`, [randomString, deploymentId, "localhost", port]);
+      res.send({ status: "success", containerId: container.id, port });
   }));
 
 
