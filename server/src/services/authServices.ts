@@ -1,4 +1,4 @@
-import { client } from "../db/db";
+import { client } from "../configs/db";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import 'dotenv/config'

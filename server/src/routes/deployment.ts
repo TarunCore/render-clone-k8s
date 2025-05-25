@@ -3,7 +3,7 @@ import express, { Request, Response } from "express";
 import { asyncHandler } from "../util/common";
 import { createUser, loginUser } from "../services/authServices";
 import { createDeployment, getDeploymentById, getDeployments } from "../services/deploymentServices";
-import { client } from "../db/db";
+import { client } from "../configs/db";
 import { DEP_MANAGER_BASE_URL } from "../config";
 
 const router = express.Router();

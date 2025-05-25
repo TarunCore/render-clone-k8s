@@ -1,5 +1,5 @@
 import { DEP_MANAGER_BASE_URL } from "../config";
-import { client } from "../db/db";
+import { client } from "../configs/db";
 import { Deployment } from "../types/deploymentTypes";
 import { z } from "zod";
 // import fetch from "node-fetch"

@@ -14,35 +14,6 @@ const PROJECT_VS_IMAGE = {
     "node-builder": "node-builder",
 }
 
-buildRouter.post("/create", asyncHandler(async (req: Request, res: Response) => {
-    const { github_url, to_deploy_commit_hash, project_type } = req.body;
-    if (!github_url || !to_deploy_commit_hash || !project_type) {
-      return res.status(400).send({ status: "error", message: "Missing required fields" });
-    }
-    const container = await docker.createContainer({
-        Image: PROJECT_VS_IMAGE["nodejs"],
-        // Cmd: ['/bin/sh', '-c', 'while true; do sleep 1000; done'],
-        Cmd: ['/bin/sh', '-c', 'ls'],
-        name: 'node-'+(Math.floor(Math.random() * 1000)).toString(),
-      }).catch((err) => {
-        console.error("Error creating container:", err);
-        res.status(500).send({ status: "error", message: "Error creating container", error: err });
-        return null;
-      });
-      
-      if (!container) return;
-      
-      await container.start().catch((err) => {
-        console.error("Error starting container:", err);
-        res.status(500).send({ status: "error", message: "Error starting container", error: err });
-        return;
-      });
-      // startBuild(container.id, github_url, to_deploy_commit_hash);
-      console.log(`Container created with id: ${container.id} and started`);
-      
-      res.send({ status: "success", message: "Build created successfully", data: container });
-}));
-
 buildRouter.post("/create/v2", asyncHandler(async (req: Request, res: Response) => {
     const { github_url, to_deploy_commit_hash, project_type, deploymentId } = req.body;
     if (!github_url || !to_deploy_commit_hash || !project_type) {
