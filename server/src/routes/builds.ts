@@ -2,7 +2,7 @@ import express, { Request, Response } from "express";
 import { asyncHandler } from "../util/common";
 import { createUser, loginUser } from "../services/authServices";
 import { client } from "../configs/db";
-import k8sApi from "../configs/k8s";
+import k8sApi, { coreApi } from "../configs/k8s";
 
 const buildRouter = express.Router();
 
@@ -58,9 +58,33 @@ buildRouter.post("/create/v2", asyncHandler(async (req: Request, res: Response) 
         namespace: 'default',
         body: podManifest
     });
+      
     // Update DB
     res.status(200).send({ status: "success", message: "Build started", data, podManifest });
 }));
+buildRouter.post("/create/service/:subdomain", asyncHandler(async (req: Request, res: Response) => {
+    const { subdomain } = req.params;
+    const service = {
+        metadata: { name: `service-${subdomain}` }, // TODO: use proper naming
+        spec: {
+          selector: { app: `${subdomain}` },
+          ports: [{ port: 80, targetPort: 3000 }],
+          type: 'ClusterIP'
+        }
+      };
+      
+      await coreApi.createNamespacedService({namespace: 'default', body: {
+        apiVersion: 'v1',
+        kind: 'Service',
+        metadata: service.metadata,
+        spec: service.spec
+      }});
+      
+    // Update DB
+    res.status(200).send({ status: "success", message: "Service created" });
+}));
+
+
 
 
 // buildRouter.post("/watch-logs/:deploymentId/:containerId", asyncHandler(async (req: Request, res: Response) => {
