@@ -62,25 +62,64 @@ const frontendClients = new Map(); // Map<deploymentId, Set<clientWs>>
 //   ws.send('Hello from WS logs server');
 // });
 
-wss.on('connection', async (ws) => {
-  const logStream = new PassThrough();
-
-  logStream.on('data', (chunk) => {
-    ws.send(chunk.toString());
-  });
-  ws.on('close', () => {
-    logStream.end();
-  });
+wss.on('connection', (ws) => {
   console.log('Client connected');
-  ws.send('Hello from WS logs server');
-  const subdomain = "2";
-  stream.log('default', `${subdomain}-pod`, subdomain, logStream, {
-    follow: true,
-    tailLines: 100,
-    pretty: false,
-    timestamps: false
+
+  // Keep track of the logStream for this connection so we can close it on disconnect
+  let logStream: PassThrough | null = null;
+
+  ws.on('message', (message) => {
+    console.log('Received:', message.toString());
+
+    let parsed;
+    try {
+      parsed = JSON.parse(message.toString());
+    } catch (err) {
+      console.error('Invalid JSON:', err);
+      ws.send(JSON.stringify({ error: 'Invalid JSON' }));
+      return;
+    }
+
+    const { type, deploymentId } = parsed;
+
+    if (type === 'frontend-subscribe' && deploymentId) {
+      // If there's an existing logStream, end it before creating a new one
+      if (logStream) {
+        logStream.end();
+      }
+
+      logStream = new PassThrough();
+
+      logStream.on('data', (chunk) => {
+        if (ws.readyState === ws.OPEN) {
+          ws.send(chunk.toString());
+        }
+      });
+      // stream.log(
+      //   'default',
+      //   `${deploymentId}-pod`,
+      //   deploymentId,
+      //   logStream,
+      //   {
+      //     follow: true,
+      //     tailLines: 100,
+      //     pretty: false,
+      //     timestamps: false,
+      //   }
+      // );
+    }
   });
+
+  ws.on('close', () => {
+    console.log('Client disconnected');
+    if (logStream) {
+      logStream.end();
+    }
+  });
+
+  ws.send('Hello from WS logs server');
 });
+
 
 app.listen(PORT, () => {
     console.log("Server is running on port " + PORT);

@@ -6,11 +6,20 @@ import { useRouter } from 'next/navigation';
 import { Deployment } from '@/types/deploymentTypes';
 import { Button } from '@heroui/button';
 import {  Modal,  ModalContent,  ModalHeader,  ModalBody,  ModalFooter} from "@heroui/modal";
+import { Input } from "@heroui/input";
+import { Select, SelectItem } from "@heroui/select";
 
 
 const DeploymentsPage = () => {
     const router = useRouter();
     const [deployments, setDeployments] = useState<Deployment[]>([]);
+    // Modal and form state
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [projectName, setProjectName] = useState("");
+    const [description, setDescription] = useState("");
+    const [githubUrl, setGithubUrl] = useState("");
+    const [projectType, setProjectType] = useState("nodejs");
+    
     async function fetchData() {
         try {
             const response = await api.get('/deployments');
@@ -27,14 +36,84 @@ const DeploymentsPage = () => {
         fetchData();
     }, [])
 
+    // Optional: handle form submit
+    const handleCreate = async (e: React.FormEvent) => {
+        e.preventDefault();
+        // TODO: Add API call to create deployment
+        try{
+            const response = await api.post('/deployments', {
+                name: projectName,
+                description: description,
+                github_url: githubUrl,
+                project_type: projectType
+            });
+            if(response.status === 200){
+                setIsModalOpen(false);
+                fetchData();
+            }
+        }catch(e){
+            console.log(e);
+        }
+    };
 
     return (
         // <div className='flex'>
         <div>
             <div className='flex justify-between items-center'>
             <h1 className="text-2xl font-bold">Deployments</h1>
-            <Button variant='flat' color='primary'>Create</Button>
+            <Button variant='flat' color='primary' onClick={() => setIsModalOpen(true)}>Create</Button>
             </div>
+            <Modal isOpen={isModalOpen} onOpenChange={setIsModalOpen} placement="center">
+                <ModalContent>
+                    <ModalHeader className="flex flex-col gap-1">Create New Project</ModalHeader>
+                    <form onSubmit={handleCreate}>
+                        <ModalBody>
+                            <div className="flex flex-col gap-4">
+                                <Input
+                                    isRequired
+                                    label="Project Name"
+                                    value={projectName}
+                                    onChange={e => setProjectName(e.target.value)}
+                                    placeholder="Enter project name"
+                                    name="projectName"
+                                />
+                                <Input
+                                    isRequired
+                                    label="Description"
+                                    value={description}
+                                    onChange={e => setDescription(e.target.value)}
+                                    placeholder="Enter description"
+                                    name="description"
+                                />
+                                <Input
+                                    isRequired
+                                    label="GitHub URL"
+                                    value={githubUrl}
+                                    onChange={e => setGithubUrl(e.target.value)}
+                                    placeholder="https://github.com/username/repo"
+                                    name="githubUrl"
+                                />
+                                <Select
+                                    label="Project Type"
+                                    isRequired
+                                    selectedKeys={[projectType]}
+                                    onSelectionChange={keys => {
+                                        const keyArr = Array.from(keys);
+                                        if (keyArr.length > 0) setProjectType(keyArr[0] as string);
+                                    }}
+                                >
+                                    <SelectItem key="nodejs">Node.js</SelectItem>
+                                    <SelectItem key="python">Python</SelectItem>
+                                </Select>
+                            </div>
+                        </ModalBody>
+                        <ModalFooter>
+                            <Button variant="light" onClick={() => setIsModalOpen(false)} type="button">Cancel</Button>
+                            <Button color="primary" type="submit">Create</Button>
+                        </ModalFooter>
+                    </form>
+                </ModalContent>
+            </Modal>
             {deployments.map((deployment) => {
                 return (
                     <div onClick={()=>router.push("/deployments/"+deployment.id)} key={deployment.id + "dep"} className='border-1 hover:shadow-md border-gray-600 cursor-pointer rounded-2xl p-4 my-2 bg-neutral-800 hover:bg-neutral-900 animation duration-100'>

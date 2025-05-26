@@ -2,7 +2,7 @@ import express, { Request, Response } from "express";
 import { asyncHandler } from "../util/common";
 import { createUser, loginUser } from "../services/authServices";
 import { client } from "../configs/db";
-import k8sApi, { coreApi } from "../configs/k8s";
+import k8sApi, { coreApi, networkingApi } from "../configs/k8s";
 
 const buildRouter = express.Router();
 
@@ -82,6 +82,46 @@ buildRouter.post("/create/service/:subdomain", asyncHandler(async (req: Request,
       
     // Update DB
     res.status(200).send({ status: "success", message: "Service created" });
+}));
+// add the domain to the existing ingress
+// apiVersion: networking.k8s.io/v1
+// kind: Ingress
+// metadata:
+//   name: todoapp-ingress
+//   annotations:
+//     nginx.ingress.kubernetes.io/rewrite-target: /
+// spec:
+//   rules:
+//   - host: todoapp.my-domain.com
+//     http:
+//       paths:
+//       - path: /
+//         pathType: Prefix
+//         backend:
+//           service:
+//             name: todoapp-service
+//             port:
+//               number: 80
+
+buildRouter.post("/update-ingress/:subdomain", asyncHandler(async (req: Request, res: Response) => {
+    const { subdomain } = req.params;
+    // TODO: use proper naming. change hardcoded ingress name
+    const ingress = await networkingApi.readNamespacedIngress({namespace: 'default', name: 'todoapp-ingress'});
+    if (!ingress.spec) {
+        return res.status(400).send({ status: "error", message: "Ingress not found" });
+    }
+    if(!ingress.spec.rules) {
+        ingress.spec.rules = [];
+    }
+    ingress.spec.rules.push({
+        host: `${subdomain}.my-domain.com`,
+        http: {
+            paths: [{ path: '/', pathType: 'Prefix', backend: { service: { name: `service-${subdomain}`, port: { number: 80 } } } }]
+        }
+    });
+    await networkingApi.replaceNamespacedIngress({namespace: 'default', name: 'todoapp-ingress', body: ingress});
+    
+    res.status(200).send({ status: "success", message: "Ingress updated" });
 }));
 
 
