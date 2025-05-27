@@ -27,7 +27,7 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   res.status(500).json({ message: "Something went wrong", error: err.message });
 });
 
-app.use("/api/v1/user", userRouter);
+app.use("/api/v1/users", userRouter);
 app.use("/api/v1/deployments", deploymentRouter);
 app.use("/api/v1/builds/", buildRouter)
 
