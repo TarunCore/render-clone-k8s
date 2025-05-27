@@ -13,7 +13,7 @@
 //     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 //     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 // );
-export type DeploymentStatus = "pending" | "initializing" | "success" | "failed" | "cancelling" | "cancelled";
+export type DeploymentStatus = "pending" | "building" | "success" | "failed" | "cancelling" | "cancelled";
 
 export type Deployment = {
     id: string;
@@ -22,6 +22,7 @@ export type Deployment = {
     deployed_by: string;
     deployed_at: string;
     project_type: string;
+    subdomain: string;
     status: DeploymentStatus;
     status_message: string;
     expires_at: string;

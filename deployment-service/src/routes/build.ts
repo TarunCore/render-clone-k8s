@@ -32,7 +32,7 @@ buildRouter.post("/create/v2", asyncHandler(async (req: Request, res: Response) 
         node index.js
     `;
     const fullCmd = `build-and-run.sh ${github_url} ${to_deploy_commit_hash} && ls && cd app && ls && ${"node index.js"}`;
-    const prevBuilds = await client.query("SELECT * FROM builds WHERE base_deployment_id = $1", [deploymentId]);
+    const prevBuilds = await client.query("SELECT * FROM builds WHERE deployment_id = $1", [deploymentId]);
     // kill all previous builds
     for (const build of prevBuilds.rows) {
         if(build.status=="cancelled") continue;
@@ -65,7 +65,7 @@ buildRouter.post("/create/v2", asyncHandler(async (req: Request, res: Response) 
       
       await container.start();
       const buildData = await client.query(`INSERT INTO builds (status, status_message,build_started_at, 
-        commit_hash, commit_message,base_deployment_id, container_id)
+        commit_hash, commit_message,deployment_id, container_id)
       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`, ["pending", "Build started", new Date(), to_deploy_commit_hash, "com msg", deploymentId, container.id]);
       // TODO: validate buildData
       await client.query(`UPDATE deployments SET last_build_id = $1, last_deployed_hash = $2, last_deployed_at = $3 WHERE id = $4`, [buildData.rows[0].id, to_deploy_commit_hash, new Date(), deploymentId]);

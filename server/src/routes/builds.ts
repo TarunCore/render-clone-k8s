@@ -24,17 +24,17 @@ function getCommand(githubUrl: string, buildCommand: string, runCommand: string)
     return command;
 }
 
-function getPodManifest(subdomain: string, command: string) {
+function getPodManifest(deploymentId: string, command: string) {
     const podManifest = {
         metadata: {
-            name: `${subdomain}-pod`,
-            labels: { app: subdomain }
+            name: `${deploymentId}-pod`,
+            labels: { app: deploymentId }
         },
         spec: {
             containers: [
                 {
-                    name: subdomain,
-                    image: 'node:22.15',
+                    name: deploymentId,
+                    image: 'node:22.15-alpine',
                     command: ['sh', '-c'],
                     args: [command],
                     ports: [{ containerPort: 3000 }],
@@ -47,19 +47,26 @@ function getPodManifest(subdomain: string, command: string) {
 }
 
 buildRouter.post("/create/v2", asyncHandler(async (req: Request, res: Response) => {
-    const { github_url, to_deploy_commit_hash, project_type, deploymentId } = req.body;
+    const { github_url, to_deploy_commit_hash, project_type, deploymentId, subdomain } = req.body;
     if (!github_url || !to_deploy_commit_hash || !project_type) {
         return res.status(400).send({ status: "error", message: "Missing required fields" });
     }
     // Apply podManifest
     const command = getCommand(github_url, "npm install", "node index.js");
     const podManifest = getPodManifest(deploymentId, command);
-    const data = await k8sApi.createNamespacedPod({
+    // if already exists, apply the podManifest
+    const existingPod = await k8sApi.readNamespacedPod({namespace: 'default', name: `${deploymentId}-pod`});
+    let data;
+    if (existingPod) {
+        await k8sApi.deleteNamespacedPod({namespace: 'default', name: `${deploymentId}-pod`});
+    }
+    data = await k8sApi.createNamespacedPod({
         namespace: 'default',
         body: podManifest
     });
       
     // Update DB
+    await client.query("UPDATE deployments SET status = 'building' WHERE id = $1", [deploymentId]);
     res.status(200).send({ status: "success", message: "Build started", data, podManifest });
 }));
 buildRouter.post("/create/service/:subdomain", asyncHandler(async (req: Request, res: Response) => {

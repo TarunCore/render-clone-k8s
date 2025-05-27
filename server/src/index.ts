@@ -68,7 +68,7 @@ wss.on('connection', (ws) => {
   // Keep track of the logStream for this connection so we can close it on disconnect
   let logStream: PassThrough | null = null;
 
-  ws.on('message', (message) => {
+  ws.on('message', async(message) => {
     console.log('Received:', message.toString());
 
     let parsed;
@@ -80,7 +80,7 @@ wss.on('connection', (ws) => {
       return;
     }
 
-    const { type, deploymentId } = parsed;
+    let { type, deploymentId } = parsed;
 
     if (type === 'frontend-subscribe' && deploymentId) {
       // If there's an existing logStream, end it before creating a new one
@@ -95,18 +95,24 @@ wss.on('connection', (ws) => {
           ws.send(chunk.toString());
         }
       });
-      // stream.log(
-      //   'default',
-      //   `${deploymentId}-pod`,
-      //   deploymentId,
-      //   logStream,
-      //   {
-      //     follow: true,
-      //     tailLines: 100,
-      //     pretty: false,
-      //     timestamps: false,
-      //   }
-      // );
+      // deploymentId ="4";
+      try{
+        await stream.log(
+          'default',
+          `${deploymentId}-pod`,
+          deploymentId,
+          logStream,
+          {
+            follow: true,
+            tailLines: 100,
+            pretty: false,
+            timestamps: false,
+          }
+        );
+      }catch(err){
+        // console.error('Error streaming logs:', err);
+        ws.send(JSON.stringify({ error: 'Error streaming logs' }));
+      }
     }
   });
 

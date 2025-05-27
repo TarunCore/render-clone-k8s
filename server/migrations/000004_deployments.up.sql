@@ -3,8 +3,8 @@ CREATE TABLE deployments (
     name VARCHAR(100) NOT NULL,
     description TEXT,
     deployed_by BIGINT REFERENCES users(id),
-    deployed_at TIMESTAMP,
     project_type VARCHAR(50) NOT NULL,
+    subdomain VARCHAR(30),
     status VARCHAR(50) NOT NULL,
     status_message TEXT,
     expires_at TIMESTAMP,
@@ -25,4 +25,4 @@ EXECUTE FUNCTION update_updated_at_column();
 
 ALTER TABLE builds
 ADD CONSTRAINT fk_base_deployment
-FOREIGN KEY (base_deployment_id) REFERENCES deployments(id);
+FOREIGN KEY (deployment_id) REFERENCES deployments(id);

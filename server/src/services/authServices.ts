@@ -3,13 +3,14 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import 'dotenv/config'
 async function createUser(data: any) {
-    const result = await client.query('INSERT INTO users(email, username, password) VALUES ($1, $2, $3) RETURNING id', ['brianc', 'sdf', 'sda']);
+    const { email, username, password, provider } = data;
+    const result = await client.query('INSERT INTO users(email, username, password, provider) VALUES ($1, $2, $3, $4) RETURNING id', [email, username, password, provider]);
     return result.rows;
 }
 
 //loginUser
-async function loginUser(username: string, password: string) {
-    const result = await client.query('SELECT * FROM users WHERE username = $1', [username]);
+async function loginUser(email: string, username: string, password: string) {
+    const result = await client.query('SELECT * FROM users WHERE email = $1 OR username = $2', [email, username]);
     if (result.rows.length === 0) {
         throw new Error('User not found');
     }

@@ -6,6 +6,5 @@ CREATE TABLE builds (
     status_message TEXT,
     build_started_at TIMESTAMP,
     build_finished_at TIMESTAMP,
-    container_id VARCHAR(150),
-    base_deployment_id BIGINT
+    deployment_id BIGINT
 );

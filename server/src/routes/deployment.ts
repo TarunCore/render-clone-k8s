@@ -21,7 +21,7 @@ router.get("/", asyncHandler(async (req: Request, res: Response) => {
 
 router.get("/:id/builds", asyncHandler(async (req: Request, res: Response) => {
     // order in descending order
-    const responce = await client.query("SELECT * FROM builds WHERE base_deployment_id = $1 ORDER BY id DESC", [req.params.id]);
+    const responce = await client.query("SELECT * FROM builds WHERE deployment_id = $1 ORDER BY id DESC", [req.params.id]);
     if (responce.rows.length === 0) {
         return res.status(404).send({ status: "error", message: "Build not found" });
     }

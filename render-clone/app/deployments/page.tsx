@@ -19,7 +19,7 @@ const DeploymentsPage = () => {
     const [description, setDescription] = useState("");
     const [githubUrl, setGithubUrl] = useState("");
     const [projectType, setProjectType] = useState("nodejs");
-    
+    const [subdomain, setSubdomain] = useState("");
     async function fetchData() {
         try {
             const response = await api.get('/deployments');
@@ -45,7 +45,8 @@ const DeploymentsPage = () => {
                 name: projectName,
                 description: description,
                 github_url: githubUrl,
-                project_type: projectType
+                project_type: projectType,
+                subdomain: subdomain
             });
             if(response.status === 200){
                 setIsModalOpen(false);
@@ -92,6 +93,14 @@ const DeploymentsPage = () => {
                                     onChange={e => setGithubUrl(e.target.value)}
                                     placeholder="https://github.com/username/repo"
                                     name="githubUrl"
+                                />
+                                <Input
+                                    isRequired
+                                    label="Subdomain"
+                                    value={subdomain}
+                                    onChange={e => setSubdomain(e.target.value)}
+                                    placeholder="Enter subdomain"
+                                    name="subdomain"
                                 />
                                 <Select
                                     label="Project Type"

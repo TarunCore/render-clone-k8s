@@ -7,7 +7,8 @@ const createDeploymentSchema = z.object({
     name: z.string().min(1, "Name is required"),
     description: z.string().optional(),
     github_url: z.string().url("Must be a valid URL"),
-    project_type: z.enum(["nodejs", "python", "java", "php", "ruby", "go"])
+    project_type: z.enum(["nodejs", "python", "java", "php", "ruby", "go"]),
+    subdomain: z.string().min(1, "Subdomain is required")
   });
   
 type CreateDeploymentType = z.infer<typeof createDeploymentSchema>;
@@ -25,10 +26,10 @@ async function createDeployment(deployment: CreateDeploymentType): Promise<Deplo
         throw new Error("Invalid payload");
         // throw new Error(parseData.error.errors[0].message);
     }
-    const { name, description, github_url, project_type } = parseData.data;
+    const { name, description, github_url, project_type, subdomain } = parseData.data;
     const result = await client.query<Deployment>(
-        'INSERT INTO deployments (name, description, github_url, project_type, status) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-        [name, description, github_url, project_type, "pending"]
+        'INSERT INTO deployments (name, description, github_url, project_type, status, subdomain) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+        [name, description, github_url, project_type, "pending", subdomain]
     );
     return result.rows[0];
 }

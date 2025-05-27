@@ -5,7 +5,7 @@ interface AuthenticatedRequest extends Request {
     userId?: string;
 }
 
-async function authMiddle(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+async function jwtAuth(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   const token = req.cookies.token;
   if (!token) {
     return res.status(401).json({ message: "Unauthorized" });

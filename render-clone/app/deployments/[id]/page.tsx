@@ -47,11 +47,6 @@ const ManageDeploymentsPage = () => {
         const github_url = deployment?.github_url;
         if (!github_url) return;
         const repoName = github_url.split('/').slice(-2).join('/');
-        // const repoUrl = github_url.replace(/\.git$/, '');
-        // const repoPath = repoUrl.split('/').pop();
-        // const repoOwner = repoUrl.split('/').slice(-2)[0];
-        // const repo = repoUrl.split('/').slice(-2).join('/');
-        // console.log(repoName, repoPath, repoOwner, repo);
         const response = await fetch(`https://api.github.com/repos/${repoName}/commits?per_page=5`, {
             headers: {
                 "Accept": "application/vnd.github+json"
@@ -73,8 +68,9 @@ const ManageDeploymentsPage = () => {
     const { description, status, last_deployed_hash, last_deployed_at, github_url } = deployment || {};
     useEffect(() => {
         fetchCommits();
-    }
-        , [deployment])
+    }, [deployment]);
+
+    
     useEffect(() => {
         //curl -H "Accept: application/vnd.github+json" https://api.github.com/repos/octocat/Spoon-Knife/commits?per_page=5
         // simulate fake logs for now ; TODO: stream using websockets
@@ -158,7 +154,7 @@ const ManageDeploymentsPage = () => {
             "build_started_at": "2025-05-15T06:51:20.916Z",
             "build_finished_at": null,
             "container_id": null,
-            "base_deployment_id": "1"
+            "deployment_id": "1"
         }
     ]
 } */}
@@ -203,7 +199,7 @@ const ManageDeploymentsPage = () => {
                     <div className='flex items-center gap-2 mt-8'>
                         <h2 className="text-2xl font-bold">Logs</h2>
                         <Button isIconOnly aria-label="Watch" color="warning" variant="faded" onClick={watchLogs}>
-                            <EyeIcon/>
+                            <EyeIcon />
                         </Button>
                     </div>
                     <Divider className='my-4' />
