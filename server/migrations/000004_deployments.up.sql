@@ -1,4 +1,4 @@
-CREATE TABLE deployments (
+CREATE TABLE projects (
     id SERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     description TEXT,
@@ -18,11 +18,11 @@ CREATE TABLE deployments (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TRIGGER trigger_update_users_updated_at
-BEFORE UPDATE ON deployments
+CREATE TRIGGER trigger_update_projects_updated_at
+BEFORE UPDATE ON projects
 FOR EACH ROW
 EXECUTE FUNCTION update_updated_at_column();
 
 ALTER TABLE builds
-ADD CONSTRAINT fk_base_deployment
-FOREIGN KEY (deployment_id) REFERENCES deployments(id);
+ADD CONSTRAINT fk_base_project
+FOREIGN KEY (project_id) REFERENCES projects(id);

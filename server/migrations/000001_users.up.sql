@@ -25,7 +25,9 @@ FOR EACH ROW
 EXECUTE FUNCTION update_updated_at_column();
 
 -- creaet dummy data
-INSERT INTO users (username, password, email) values ('admin', 'admin', 'admin@localhost');
-INSERT INTO users (username, password, email) values ('user', 'user', 'user@localhost');
+INSERT INTO users (username, password, email, provider) values ('admin', 'admin', 'admin@localhost', 'custom');
+INSERT INTO users (username, password, email, provider) values ('user', 'user', 'user@localhost', 'custom');
+INSERT INTO users (username, password, email, provider) values ('test', 'test', 'test@test.com', 'custom');
+
 -- 4. Create the index on the username column
 CREATE INDEX idx_users_username ON users (username);

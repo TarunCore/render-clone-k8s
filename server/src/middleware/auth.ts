@@ -1,15 +1,11 @@
 import jwt from "jsonwebtoken";
 
 import { NextFunction, Request, Response } from "express";
-
+import { User } from "../types/userType";
 declare global {
   namespace Express {
     interface Request {
-      user?: {
-        id: string;
-        username: string;
-        email: string;
-      }
+      user?: User
     }
   }
 }
@@ -26,11 +22,8 @@ export function jwtMiddleware(req: Request, res: Response, next: NextFunction) {
         res.status(401).json({ message: "Unauthorized" });
         return
     }
-    req.user = decoded as {
-      id: string;
-      username: string;
-      email: string;
-    };
+    req.user = decoded as User;
+    req.user.provider = 'custom';
     next();
   } catch (err) {
     res.status(401).json({ message: "Unauthorized" });

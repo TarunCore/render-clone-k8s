@@ -18,7 +18,7 @@ migratedown:
 
 migratecreate:
 	migrate create -ext sql -dir migrations -seq users
-	migrate create -ext sql -dir migrations -seq deployments
+	migrate create -ext sql -dir migrations -seq projects
 reset:
 	make dropdb createdb migrateup
 

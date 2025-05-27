@@ -1,4 +1,4 @@
-// CREATE TABLE deployments (
+// CREATE TABLE projects (
 //     id SERIAL PRIMARY KEY,
 //     name VARCHAR(100) NOT NULL UNIQUE,
 //     description TEXT,
@@ -13,9 +13,9 @@
 //     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 //     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 // );
-export type DeploymentStatus = "pending" | "building" | "success" | "failed" | "cancelling" | "cancelled";
+export type Projectstatus = "pending" | "building" | "success" | "failed" | "cancelling" | "cancelled";
 
-export type Deployment = {
+export type Project = {
     id: string;
     name: string;
     description: string;
@@ -23,7 +23,7 @@ export type Deployment = {
     deployed_at: string;
     project_type: string;
     subdomain: string;
-    status: DeploymentStatus;
+    status: Projectstatus;
     status_message: string;
     expires_at: string;
     github_url: string;

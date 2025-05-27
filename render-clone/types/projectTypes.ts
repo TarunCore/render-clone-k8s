@@ -1,12 +1,12 @@
-export type DeploymentStatus = "pending"| "building" | "success" | "failed" | "cancelling" | "cancelled";
+export type Projectstatus = "pending"| "building" | "success" | "failed" | "cancelling" | "cancelled";
 
-export type Deployment = {
+export type Projects = {
     id: string;
     name: string;
     description: string;
     deployed_by: string;
     project_type: string;
-    status: DeploymentStatus;
+    status: Projectstatus;
     status_message: string;
     expires_at: string;
     github_url: string;

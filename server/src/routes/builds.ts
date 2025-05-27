@@ -5,36 +5,59 @@ import { client } from "../configs/db";
 import k8sApi, { coreApi, networkingApi } from "../configs/k8s";
 
 const buildRouter = express.Router();
-
-function getCommand(githubUrl: string, buildCommand: string, runCommand: string) {
+interface Command {
+    installCommand?: string;
+    buildCommand?: string | null;
+    runCommand?: string;
+    envVariables?: string;
+}
+function getCommand(githubUrl: string, commands: Command) {
     const repoName = githubUrl.split('/').pop()?.replace(/\.git$/, '') || 'repo';
-    let command = `
-        git clone ${githubUrl} && \
-        cd ${repoName} && \
-        npm install && \
-        echo "MONGO_URI=mongodb+srv://test:test@cluster0.vytqvwl.mongodb.net/" > .env && \
-        echo "ACCESS_TOKEN_SECRET=adsf" >> .env && \
-        `;
-    if (buildCommand) {
-        command += `${buildCommand} && \ `;
+    const parts = [
+        `git clone ${githubUrl}`,
+        `cd ${repoName}`
+    ];
+
+    if (commands.installCommand) {
+        parts.push(commands.installCommand);
     }
-    if (runCommand) {
-        command += `${runCommand}`;
+    if (commands.buildCommand) {
+        parts.push(commands.buildCommand);
     }
-    return command;
+    if (commands.runCommand) {
+        parts.push(commands.runCommand);
+    }
+    if (commands.envVariables) {
+        const vars = commands.envVariables
+            .split("\n")
+            .map(v => v.trim())
+            .filter(Boolean)
+            .map(v => `echo "${v}" >> .env`);
+        parts.unshift('touch .env');
+        parts.push(...vars);
+    }
+
+    return parts.join(' && ');
 }
 
-function getPodManifest(deploymentId: string, command: string) {
+
+const projectTypeToImage = {
+    "nodejs": "node:22.15",
+    "python": "python:3.10",
+    "go": "golang:1.20"
+}
+
+function getPodManifest(projectId: string, command: string, projectType: keyof typeof projectTypeToImage) { // TODO: change to project_id
     const podManifest = {
         metadata: {
-            name: `${deploymentId}-pod`,
-            labels: { app: deploymentId }
+            name: `${projectId}-pod`,
+            labels: { app: projectId }
         },
         spec: {
             containers: [
                 {
-                    name: deploymentId,
-                    image: 'node:22.15-alpine',
+                    name: projectId,
+                    image: projectTypeToImage[projectType],
                     command: ['sh', '-c'],
                     args: [command],
                     ports: [{ containerPort: 3000 }],
@@ -46,27 +69,39 @@ function getPodManifest(deploymentId: string, command: string) {
     return podManifest;
 }
 
+const env =`MONGO_URI=mongodb+srv://test:test@cluster0.vytqvwl.mongodb.net/
+ACCESS_TOKEN_SECRET=adsf`
+
 buildRouter.post("/create/v2", asyncHandler(async (req: Request, res: Response) => {
-    const { github_url, to_deploy_commit_hash, project_type, deploymentId, subdomain } = req.body;
-    if (!github_url || !to_deploy_commit_hash || !project_type) {
+    const { github_url, to_deploy_commit_hash, project_type, project_id, subdomain } = req.body;
+    if (!github_url || !to_deploy_commit_hash || !project_type || !project_id) {
         return res.status(400).send({ status: "error", message: "Missing required fields" });
     }
     // Apply podManifest
-    const command = getCommand(github_url, "npm install", "node index.js");
-    const podManifest = getPodManifest(deploymentId, command);
+    const command = getCommand(github_url, {
+        buildCommand: null,
+        installCommand: "npm install",
+        runCommand: "node index.js",
+        envVariables: env
+    });
+    const podManifest = getPodManifest(project_id, command, project_type);
     // if already exists, apply the podManifest
-    const existingPod = await k8sApi.readNamespacedPod({namespace: 'default', name: `${deploymentId}-pod`});
-    let data;
-    if (existingPod) {
-        await k8sApi.deleteNamespacedPod({namespace: 'default', name: `${deploymentId}-pod`});
-    }
-    data = await k8sApi.createNamespacedPod({
+    // const existingPod = await k8sApi.readNamespacedPod({namespace: 'default', name: `${deploymentId}-pod`});
+    // let data;
+    // if (existingPod) {
+    //     await k8sApi.deleteNamespacedPod({namespace: 'default', name: `${deploymentId}-pod`});
+    // }
+    console.dir(podManifest, { depth: null });
+
+    const data = await k8sApi.createNamespacedPod({
         namespace: 'default',
         body: podManifest
     });
-      
     // Update DB
-    await client.query("UPDATE deployments SET status = 'building' WHERE id = $1", [deploymentId]);
+    await client.query("UPDATE projects SET status = 'building' WHERE id = $1", [project_id]);
+    await client.query(`INSERT INTO builds (status, status_message,build_started_at, 
+        commit_hash, commit_message,project_id)
+      VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`, ["building", "Build started", new Date(), to_deploy_commit_hash, "samsple msg", project_id]);        
     res.status(200).send({ status: "success", message: "Build started", data, podManifest });
 }));
 buildRouter.post("/create/service/:subdomain", asyncHandler(async (req: Request, res: Response) => {

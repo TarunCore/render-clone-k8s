@@ -24,6 +24,6 @@ app.get("/", (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log("Deployment Manager Service is running on port " + PORT);
+    console.log("Project Manager Service is running on port " + PORT);
     console.log("Visit http://localhost:" + PORT);
 });

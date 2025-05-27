@@ -1,6 +1,6 @@
 "use client"
 import api from '@/components/axios'
-import { Deployment } from '@/types/deploymentTypes';
+import { Projects } from '@/types/projectTypes';
 import { Button } from '@heroui/button';
 import { useParams } from 'next/navigation';
 import React, { useEffect, useState } from 'react'
@@ -9,31 +9,28 @@ import PullIcon from '@/components/icons/PullIcon';
 import { Link } from '@heroui/link';
 import { Select, SelectSection, SelectItem } from "@heroui/select";
 import { Spinner } from "@heroui/spinner";
-const branches = [
-    { key: "main", label: "main" },
-    { key: "master", label: "master" },
-]
 import AnsiToHtml from 'ansi-to-html';
 import EyeIcon from '@/components/icons/EyeIcon';
 const convert = new AnsiToHtml();
 // const ws = new WebSocket('ws://localhost:3001/');
 
-const ManageDeploymentsPage = () => {
+const ManageProjectsPage = () => {
     const params = useParams<{ id: string }>()
-    const [selectedBranch, setSelectedBranch] = useState("main");
-    const [deployment, setDeployment] = useState<Deployment | null>(null);
+    const [selectedBranch, setSelectedBranch] = useState("");
+    const [deployment, setProjects] = useState<Projects | null>(null);
     const [logs, setLogs] = useState<string[]>([]);
     const [htmlLogs, setHtmlLogs] = useState<string>("");
     const [commits, setCommits] = useState<string[]>([]);
+    const [branches, setBranches] = useState<string[]>([]);
     const [selectedCommit, setSelectedCommit] = useState<string>("");
     const [builds, setBuilds] = useState<any[]>([]);
     async function fetchData() {
         try {
-            const response = await api.get('/deployments/' + params.id);
+            const response = await api.get('/projects/' + params.id);
             if (response.status === 200) {
-                setDeployment(response.data.data);
+                setProjects(response.data.data);
             }
-            const buildsResponse = await api.get('/deployments/' + params.id + '/builds');
+            const buildsResponse = await api.get('/projects/' + params.id + '/builds');
             if (buildsResponse.status === 200) {
                 setBuilds(buildsResponse.data.data);
             }
@@ -42,32 +39,57 @@ const ManageDeploymentsPage = () => {
 
         }
     }
-    async function fetchCommits() {
+    async function fetchCommitsAndBranches() {
         // extract the repo name from the github_url
         const github_url = deployment?.github_url;
         if (!github_url) return;
         const repoName = github_url.split('/').slice(-2).join('/');
-        const response = await fetch(`https://api.github.com/repos/${repoName}/commits?per_page=5`, {
-            headers: {
-                "Accept": "application/vnd.github+json"
-            }
-        });
 
-        const data = await response.json();
-        if (response.status !== 200) {
-            console.log("Error fetching commits");
-            return;
+        try {
+            const [commitsResponse, branchesResponse] = await Promise.all([
+                fetch(`https://api.github.com/repos/${repoName}/commits?per_page=5`, {
+                    headers: {
+                        "Accept": "application/vnd.github+json"
+                    }
+                }),
+                fetch(`https://api.github.com/repos/${repoName}/branches`, {
+                    headers: {
+                        "Accept": "application/vnd.github+json"
+                    }
+                })
+            ]);
+
+            if (commitsResponse.status !== 200) {
+                console.log("Error fetching commits");
+                return;
+            }
+            const commitsData = await commitsResponse.json();
+            const commitHashes = commitsData.map((commit: any) => commit.sha);
+            setCommits(commitHashes);
+            // Select first commit by default if available
+            if (commitHashes.length > 0) {
+                setSelectedCommit(commitHashes[0]);
+            }
+
+            if (branchesResponse.status === 200) {
+                const branchesData = await branchesResponse.json();
+                const branchNames = branchesData.map((branch: any) => branch.name);
+                setBranches(branchNames);
+                // Select first branch by default if available
+                if (branchNames.length > 0) {
+                    setSelectedBranch(branchNames[0]);
+                }
+            }
+        } catch (err) {
+            console.log("Error fetching commits or branches", err);
         }
-        const commitHashes = data.map((commit: any) => commit.sha);
-        setCommits(commitHashes)
-        console.log(commitHashes);
     }
     useEffect(() => {
         fetchData();
     }, [])
     const { description, status, last_deployed_hash, last_deployed_at, github_url } = deployment || {};
     useEffect(() => {
-        fetchCommits();
+        fetchCommitsAndBranches();
     }, [deployment]);
 
     
@@ -109,12 +131,28 @@ const ManageDeploymentsPage = () => {
     }, [params.id]);
     const watchLogs = async () => {
         try {
-            const response = await api.post('/deployments/' + params.id + '/watch-logs');
+            const response = await api.post('/projects/' + params.id + '/watch-logs');
             if (response.status === 200) {
                 console.log("Logs watched");
             }
         } catch (err) {
             console.log(err);
+        }
+    }
+    const pullAndDeploy = async () => {
+        try {
+            const response = await api.post('/builds/create/v2', {
+                project_id: params.id,
+                github_url: github_url,
+                to_deploy_commit_hash: selectedCommit,
+                branch: selectedBranch, // TODO: add support for other branches
+                project_type: "nodejs"
+            });
+            if (response.status === 200) {
+                console.log("Pull and deploy started");
+            }
+        } catch (err) {
+            
         }
     }
 
@@ -126,7 +164,7 @@ const ManageDeploymentsPage = () => {
                 <Divider className='my-4' />
                 <div className='flex flex-col gap-1'>
                     <h2 className="text-md">{"Name: " + deployment?.name}</h2>
-                    <p className="text-gray-400 text-sm">{"Deployment ID: " + params.id}</p>
+                    <p className="text-gray-400 text-sm">{"Projects ID: " + params.id}</p>
                     {description && <p className="text-gray-400 text-sm">{"Description: " + description}</p>}
                     {status && (
                         <>
@@ -142,22 +180,6 @@ const ManageDeploymentsPage = () => {
                         Last Deployed Time: {last_deployed_at ? new Date(last_deployed_at).toDateString() : "N/A"}
                     </p>
                     <Divider className='my-4' />
-                    {/* {
-    "status": "success",
-    "data": [
-        {
-            "id": 2,
-            "commit_hash": "070d14023a280924ca30ddd9b4a3e764a2519ce2",
-            "commit_message": "com msg",
-            "status": "pending",
-            "status_message": "Build started",
-            "build_started_at": "2025-05-15T06:51:20.916Z",
-            "build_finished_at": null,
-            "container_id": null,
-            "deployment_id": "1"
-        }
-    ]
-} */}
                     <h1 className="text-xl font-bold">{"Builds " + (builds.length == 0 ? "" : `(${builds.length})`)}</h1>
                     {/* hide scroll bar */}
                     <div className='flex flex-col gap-2 overflow-y-auto max-h-[40vh] scrollbar-hide'>
@@ -167,7 +189,7 @@ const ManageDeploymentsPage = () => {
                                 <p className="text-gray-300 text-sm">{"Build ID: " + build.id}</p>
                                 <p className="text-gray-400 text-sm">{"Commit Hash: " + build.commit_hash}</p>
                                 <p className="text-gray-400 text-sm">{"Commit Message: " + build.commit_message}</p>
-                                <p className="text-gray-400 text-sm">{"Container ID: " + build.container_id.slice(0, 12)}</p>
+                                <p className="text-gray-400 text-sm">{"Build Started At: " + new Date(build.build_started_at).toLocaleTimeString()+ " "+new Date(build.build_started_at).toLocaleDateString()}</p>
                                 <p className="text-gray-400 text-sm">{"Status: " + build.status}</p>
                                 <p className="text-gray-400 text-sm">{"Status Message: " + build.status_message}</p>
                             </div>
@@ -177,22 +199,22 @@ const ManageDeploymentsPage = () => {
                 </div>
             </div>
             <div className='w-[70%]'>
-                <h2 className="text-2xl font-bold">{"Manage Deployment"}</h2>
+                <h2 className="text-2xl font-bold">{"Manage Project"}</h2>
                 {/* <Divider className='my-4' /> */}
                 <Link className='text-sm' target='_blank' href={github_url}>{github_url}</Link>
                 <form className="mt-4 flex flex-wrap gap-2">
-                    <Select className="max-w-xs" label="Select Branch" isRequired defaultSelectedKeys={["main"]} onChange={(e) => { setSelectedBranch(e.target.value) }}>
+                    <Select className="max-w-xs" label="Select Branch" isRequired defaultSelectedKeys={[]} onChange={(e) => { setSelectedBranch(e.target.value) }}>
                         {branches.map((branch) => (
-                            <SelectItem key={branch.key}>{branch.label}</SelectItem>
+                            <SelectItem key={branch}>{branch}</SelectItem>
                         ))}
                     </Select>
                     <Select className="max-w-xs" label="Select Commit" isRequired defaultSelectedKeys={[]} onChange={(e) => { setSelectedCommit(e.target.value) }}>
                         {commits.map((commit) => (
-                            <SelectItem key={commit}>{commit.substring(0, 10)}</SelectItem>
+                            <SelectItem key={commit}>{commit}</SelectItem>
                         ))}
                     </Select>
                     <div className="mt-4">
-                        <Button type='submit' variant='flat' color='success' startContent={PullIcon()}>Pull and Deploy</Button>
+                        <Button type='submit' variant='flat' color='success' startContent={PullIcon()} onClick={pullAndDeploy}>Pull and Deploy</Button>
                     </div>
                 </form>
                 <div className=''>
@@ -219,4 +241,4 @@ const ManageDeploymentsPage = () => {
     )
 }
 
-export default ManageDeploymentsPage
+export default ManageProjectsPage

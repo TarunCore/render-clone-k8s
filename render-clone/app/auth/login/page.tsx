@@ -60,7 +60,7 @@ export default function LoginPage() {
         password: formValues.password
       });
       if(response.status === 200){
-          router.push('/deployments');
+          router.push('/projects');
       }
     } catch (validationError: any) {
       const formattedErrors: LoginFormErrors = {};

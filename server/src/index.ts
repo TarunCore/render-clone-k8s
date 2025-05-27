@@ -30,7 +30,7 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
 });
 app.use(cookieParser());
 app.use("/api/v1/users", userRouter);
-app.use("/api/v1/deployments", deploymentRouter);
+app.use("/api/v1/projects", deploymentRouter);
 app.use("/api/v1/builds/", buildRouter)
 
 app.get("/", (req, res) => {
