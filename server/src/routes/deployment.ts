@@ -1,8 +1,7 @@
-
 import express, { Request, Response } from "express";
 import { asyncHandler } from "../util/common";
 import { createUser, hasProjectPermission, loginUser } from "../services/authServices";
-import { createProject, getProjectById, getProjects } from "../services/projectServices";
+import { createProject, getProjectById, getProjects, updateProject } from "../services/projectServices";
 import { client } from "../configs/db";
 import { DEP_MANAGER_BASE_URL } from "../config";
 import { jwtMiddleware } from "../middleware/auth";
@@ -44,7 +43,20 @@ router.post("/", jwtMiddleware, asyncHandler(async (req: Request, res: Response)
     const data = await createProject(req.body, req.user.id);
     res.send({status: "success", message: "Project created successfully", data: data });
 }));
-
+// const response = await api.patch(`/projects/${params.id}`, {
+//     install_commands: installCommand,
+//     build_commands: buildCommand,
+//     run_commands: runCommand,
+//     env_variables: envVariables,
+// });
+router.patch("/:id", jwtMiddleware, asyncHandler(async (req: Request, res: Response) => {
+    if(!hasProjectPermission(req.params.id, req.user)) {
+        res.status(403).send({ status: "error", message: "You do not have permission to create a project" });
+        return;
+    }
+    const data = await updateProject(req.params.id, req.body);
+    res.send({status: "success", message: "Project updated successfully", data: data });
+}));
 router.post("/:id/watch-logs/", asyncHandler(async (req: Request, res: Response) => {
     const buildId = await client.query(
         "SELECT last_build_id FROM projects WHERE id = $1",

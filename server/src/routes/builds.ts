@@ -78,12 +78,19 @@ buildRouter.post("/create/v2", asyncHandler(async (req: Request, res: Response) 
         return res.status(400).send({ status: "error", message: "Missing required fields" });
     }
     // Apply podManifest
+    const project = await client.query("SELECT build_commands, install_commands, run_commands, env_variables FROM projects WHERE id = $1", [project_id]);
     const command = getCommand(github_url, {
-        buildCommand: null,
-        installCommand: "npm install",
-        runCommand: "node index.js",
-        envVariables: env
+        buildCommand: project.rows[0].build_commands,
+        installCommand: project.rows[0].install_commands,
+        runCommand: project.rows[0].run_commands,
+        envVariables: project.rows[0].env_variables
     });
+    // const command = getCommand(github_url, {
+    //     buildCommand: null,
+    //     installCommand: "npm install",
+    //     runCommand: "node index.js",
+    //     envVariables: env
+    // });
     const podManifest = getPodManifest(project_id, command, project_type);
     // if already exists, apply the podManifest
     // const existingPod = await k8sApi.readNamespacedPod({namespace: 'default', name: `${deploymentId}-pod`});

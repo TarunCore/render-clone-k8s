@@ -15,7 +15,11 @@ CREATE TABLE projects (
     last_deployed_hash VARCHAR(255),
     last_deployed_at TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    build_commands TEXT,
+    run_commands TEXT,
+    install_commands TEXT,
+    env_variables TEXT
 );
 
 CREATE TRIGGER trigger_update_projects_updated_at

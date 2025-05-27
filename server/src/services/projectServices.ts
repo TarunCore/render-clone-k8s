@@ -68,7 +68,21 @@ async function getProjectById(id: string): Promise<Project | null> {
     return result.rows[0];
 }
 
+async function updateProject(id: string, updates: Partial<Project>): Promise<Project | null> {
+    // Build dynamic set clause and values array
+    const fields = Object.keys(updates);
+    if (fields.length === 0) {
+        throw new Error("No fields to update");
+    }
+    const setClause = fields.map((field, idx) => `${field} = $${idx + 2}`).join(", ");
+    const values = fields.map((field) => (updates as any)[field]);
+    const query = `UPDATE projects SET ${setClause}, updated_at = NOW() WHERE id = $1 RETURNING *`;
+    const result = await client.query<Project>(query, [id, ...values]);
+    if (result.rows.length === 0) {
+        return null;
+    }
+    return result.rows[0];
+}
 
-
-export { createProject, getProjects, getProjectById };
+export { createProject, getProjects, getProjectById, updateProject };
 // export { createProject, getProjectById, updateProject, deleteProject };

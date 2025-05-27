@@ -11,6 +11,9 @@ import { Select, SelectSection, SelectItem } from "@heroui/select";
 import { Spinner } from "@heroui/spinner";
 import AnsiToHtml from 'ansi-to-html';
 import EyeIcon from '@/components/icons/EyeIcon';
+import SettingsIcon from '@/components/icons/SettingsIcon';
+import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/modal";
+import { Input, Textarea } from "@heroui/input";
 const convert = new AnsiToHtml();
 // const ws = new WebSocket('ws://localhost:3001/');
 
@@ -24,6 +27,16 @@ const ManageProjectsPage = () => {
     const [branches, setBranches] = useState<string[]>([]);
     const [selectedCommit, setSelectedCommit] = useState<string>("");
     const [builds, setBuilds] = useState<any[]>([]);
+    const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+    const [projectSettings, setProjectSettings] = useState({
+        installCommand: "",
+        buildCommand: "",
+        runCommand: "",
+        envVariables: "",
+        projectType: "nodejs"
+    });
+    const [isUpdating, setIsUpdating] = useState(false);
+
     async function fetchData() {
         try {
             const response = await api.get('/projects/' + params.id);
@@ -92,7 +105,18 @@ const ManageProjectsPage = () => {
         fetchCommitsAndBranches();
     }, [deployment]);
 
-    
+    useEffect(() => {
+        if (deployment) {
+            setProjectSettings({
+                installCommand: deployment.install_commands || "",
+                buildCommand: deployment.build_commands || "",
+                runCommand: deployment.run_commands || "",
+                envVariables: deployment.env_variables || "",
+                projectType: deployment.project_type || "nodejs"
+            });
+        }
+    }, [deployment]);
+
     useEffect(() => {
         //curl -H "Accept: application/vnd.github+json" https://api.github.com/repos/octocat/Spoon-Knife/commits?per_page=5
         // simulate fake logs for now ; TODO: stream using websockets
@@ -140,21 +164,49 @@ const ManageProjectsPage = () => {
         }
     }
     const pullAndDeploy = async () => {
+        const { installCommand, buildCommand, runCommand, envVariables, projectType } = projectSettings;
+        if (buildCommand === "" || installCommand === "" || runCommand === "" || envVariables === "") {
+            alert("Please update the project settings first");
+            return;
+        }
         try {
             const response = await api.post('/builds/create/v2', {
                 project_id: params.id,
                 github_url: github_url,
                 to_deploy_commit_hash: selectedCommit,
                 branch: selectedBranch, // TODO: add support for other branches
-                project_type: "nodejs"
+                project_type: projectType
             });
             if (response.status === 200) {
                 console.log("Pull and deploy started");
             }
         } catch (err) {
-            
+
         }
     }
+
+    const handleUpdateSettings = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsUpdating(true);
+        try {
+            const response = await api.patch(`/projects/${params.id}`, {
+                install_commands: projectSettings.installCommand,
+                build_commands: projectSettings.buildCommand,
+                run_commands: projectSettings.runCommand,
+                env_variables: projectSettings.envVariables,
+                project_type: projectSettings.projectType
+            });
+            if (response.status === 200) {
+                setIsSettingsModalOpen(false);
+                fetchData();
+            }
+        } catch (err) {
+            // Optionally handle error
+            console.error(err);
+        } finally {
+            setIsUpdating(false);
+        }
+    };
 
     return (
 
@@ -189,7 +241,7 @@ const ManageProjectsPage = () => {
                                 <p className="text-gray-300 text-sm">{"Build ID: " + build.id}</p>
                                 <p className="text-gray-400 text-sm">{"Commit Hash: " + build.commit_hash}</p>
                                 <p className="text-gray-400 text-sm">{"Commit Message: " + build.commit_message}</p>
-                                <p className="text-gray-400 text-sm">{"Build Started At: " + new Date(build.build_started_at).toLocaleTimeString()+ " "+new Date(build.build_started_at).toLocaleDateString()}</p>
+                                <p className="text-gray-400 text-sm">{"Build Started At: " + new Date(build.build_started_at).toLocaleTimeString() + " " + new Date(build.build_started_at).toLocaleDateString()}</p>
                                 <p className="text-gray-400 text-sm">{"Status: " + build.status}</p>
                                 <p className="text-gray-400 text-sm">{"Status Message: " + build.status_message}</p>
                             </div>
@@ -199,7 +251,14 @@ const ManageProjectsPage = () => {
                 </div>
             </div>
             <div className='w-[70%]'>
-                <h2 className="text-2xl font-bold">{"Manage Project"}</h2>
+                <div className='flex justify-between'>
+                    <h2 className="text-2xl font-bold">{"Manage Project"}</h2>
+                    <div>
+                        <Button isIconOnly aria-label="Open project settings" color="default" variant="faded" onClick={() => setIsSettingsModalOpen(true)}>
+                            <SettingsIcon />
+                        </Button>
+                    </div>
+                </div>
                 {/* <Divider className='my-4' /> */}
                 <Link className='text-sm' target='_blank' href={github_url}>{github_url}</Link>
                 <form className="mt-4 flex flex-wrap gap-2">
@@ -237,6 +296,69 @@ const ManageProjectsPage = () => {
                     </div>
                 </div>
             </div>
+            <Modal isOpen={isSettingsModalOpen} onOpenChange={setIsSettingsModalOpen} placement="center">
+                <ModalContent>
+                    <ModalHeader className="flex flex-col gap-1">Project Settings</ModalHeader>
+                    <form onSubmit={handleUpdateSettings}>
+                        <ModalBody>
+                            <div className="flex flex-col gap-4">
+                                <Input
+                                    label="Install Command"
+                                    value={projectSettings.installCommand}
+                                    onChange={e => setProjectSettings(prev => ({ ...prev, installCommand: e.target.value }))}
+                                    placeholder="npm install"
+                                    name="installCommand"
+                                />
+                                <Input
+                                    label="Build Command"
+                                    value={projectSettings.buildCommand}
+                                    onChange={e => setProjectSettings(prev => ({ ...prev, buildCommand: e.target.value }))}
+                                    placeholder="npm run build"
+                                    name="buildCommand"
+                                />
+                                <Input
+                                    label="Run Command"
+                                    value={projectSettings.runCommand}
+                                    onChange={e => setProjectSettings(prev => ({ ...prev, runCommand: e.target.value }))}
+                                    placeholder="npm start"
+                                    name="runCommand"
+                                />
+                                <Textarea
+                                    label="Env Variables (as a single string)"
+                                    value={projectSettings.envVariables}
+                                    onChange={e => setProjectSettings(prev => ({ ...prev, envVariables: e.target.value }))}
+                                    placeholder="KEY1=VALUE1,KEY2=VALUE2"
+                                    name="envVariables"
+                                />
+                                {/* Project Type selection as clickable icons */}
+                                <div className="flex gap-4 items-center mt-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setProjectSettings(prev => ({ ...prev, projectType: 'nodejs' }))}
+                                        className={`border-2 rounded-lg p-1 ${projectSettings.projectType === 'nodejs' ? 'border-blue-500' : 'border-transparent'}`}
+                                        aria-label="Node.js"
+                                    >
+                                        <img src="https://skillicons.dev/icons?i=nodejs" height="48" width="48" alt="Node.js logo" />
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setProjectSettings(prev => ({ ...prev, projectType: 'python' }))}
+                                        className={`border-2 rounded-lg p-1 ${projectSettings.projectType === 'python' ? 'border-blue-500' : 'border-transparent'}`}
+                                        aria-label="Python"
+                                    >
+                                        <img src="https://skillicons.dev/icons?i=python" height="48" width="48" alt="Python logo" />
+                                    </button>
+                                    
+                                </div>
+                            </div>
+                        </ModalBody>
+                        <ModalFooter>
+                            <Button variant="light" onClick={() => setIsSettingsModalOpen(false)} type="button">Cancel</Button>
+                            <Button color="primary" type="submit" isLoading={isUpdating} disabled={isUpdating}>Update</Button>
+                        </ModalFooter>
+                    </form>
+                </ModalContent>
+            </Modal>
         </div>
     )
 }

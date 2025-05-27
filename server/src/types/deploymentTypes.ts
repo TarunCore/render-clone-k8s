@@ -34,4 +34,8 @@ export type Project = {
     last_deployed_at: string;
     created_at: string;
     updated_at: string;
+    build_commands: string;
+    run_commands: string;
+    install_commands: string;
+    env_variables: string;
   };
