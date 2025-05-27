@@ -102,18 +102,25 @@ const ProjectsPage = () => {
                                     placeholder="Enter subdomain"
                                     name="subdomain"
                                 />
-                                <Select
-                                    label="Project Type"
-                                    isRequired
-                                    selectedKeys={[projectType]}
-                                    onSelectionChange={keys => {
-                                        const keyArr = Array.from(keys);
-                                        if (keyArr.length > 0) setProjectType(keyArr[0] as string);
-                                    }}
-                                >
-                                    <SelectItem key="nodejs">Node.js</SelectItem>
-                                    <SelectItem key="python">Python</SelectItem>
-                                </Select>
+                                {/* Project Type selection as clickable icons */}
+                                <div className="flex gap-4 items-center mt-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setProjectType('nodejs')}
+                                        className={`border-2 rounded-lg p-1 ${projectType === 'nodejs' ? 'border-blue-500' : 'border-transparent'}`}
+                                        aria-label="Node.js"
+                                    >
+                                        <img src="https://skillicons.dev/icons?i=nodejs" height="48" width="48" alt="Node.js logo" />
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setProjectType('python')}
+                                        className={`border-2 rounded-lg p-1 ${projectType === 'python' ? 'border-blue-500' : 'border-transparent'}`}
+                                        aria-label="Python"
+                                    >
+                                        <img src="https://skillicons.dev/icons?i=python" height="48" width="48" alt="Python logo" />
+                                    </button>
+                                </div>
                             </div>
                         </ModalBody>
                         <ModalFooter>

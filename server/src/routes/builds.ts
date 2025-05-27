@@ -43,7 +43,7 @@ function getCommand(githubUrl: string, commands: Command) {
 
 const projectTypeToImage = {
     "nodejs": "node:22.15",
-    "python": "python:3.10",
+    "python": "python:3.10.17",
     "go": "golang:1.20"
 }
 
@@ -69,10 +69,7 @@ function getPodManifest(projectId: string, command: string, projectType: keyof t
     return podManifest;
 }
 
-const env =`MONGO_URI=mongodb+srv://test:test@cluster0.vytqvwl.mongodb.net/
-ACCESS_TOKEN_SECRET=adsf`
-
-buildRouter.post("/create/v2", asyncHandler(async (req: Request, res: Response) => {
+buildRouter.post("/create/", asyncHandler(async (req: Request, res: Response) => {
     const { github_url, to_deploy_commit_hash, project_type, project_id, subdomain } = req.body;
     if (!github_url || !to_deploy_commit_hash || !project_type || !project_id) {
         return res.status(400).send({ status: "error", message: "Missing required fields" });
@@ -93,12 +90,16 @@ buildRouter.post("/create/v2", asyncHandler(async (req: Request, res: Response) 
     // });
     const podManifest = getPodManifest(project_id, command, project_type);
     // if already exists, apply the podManifest
-    // const existingPod = await k8sApi.readNamespacedPod({namespace: 'default', name: `${deploymentId}-pod`});
-    // let data;
-    // if (existingPod) {
-    //     await k8sApi.deleteNamespacedPod({namespace: 'default', name: `${deploymentId}-pod`});
-    // }
-    console.dir(podManifest, { depth: null });
+    try {
+        const existingPod = await k8sApi.readNamespacedPod({ namespace: 'default', name: `${project_id}-pod` });
+        if (existingPod) {
+            await k8sApi.deleteNamespacedPod({ namespace: 'default', name: `${project_id}-pod` });
+        }
+    } catch (e) {
+        console.log("Pod not found. Creating new pod.")
+    }
+
+    // console.dir(podManifest, { depth: null });
 
     const data = await k8sApi.createNamespacedPod({
         namespace: 'default',
@@ -108,27 +109,30 @@ buildRouter.post("/create/v2", asyncHandler(async (req: Request, res: Response) 
     await client.query("UPDATE projects SET status = 'building' WHERE id = $1", [project_id]);
     await client.query(`INSERT INTO builds (status, status_message,build_started_at, 
         commit_hash, commit_message,project_id)
-      VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`, ["building", "Build started", new Date(), to_deploy_commit_hash, "samsple msg", project_id]);        
+      VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`, ["building", "Build started", new Date(), to_deploy_commit_hash, "samsple msg", project_id]);
     res.status(200).send({ status: "success", message: "Build started", data, podManifest });
+
 }));
 buildRouter.post("/create/service/:subdomain", asyncHandler(async (req: Request, res: Response) => {
     const { subdomain } = req.params;
     const service = {
         metadata: { name: `service-${subdomain}` }, // TODO: use proper naming
         spec: {
-          selector: { app: `${subdomain}` },
-          ports: [{ port: 80, targetPort: 3000 }],
-          type: 'ClusterIP'
+            selector: { app: `${subdomain}` },
+            ports: [{ port: 80, targetPort: 3000 }],
+            type: 'ClusterIP'
         }
-      };
-      
-      await coreApi.createNamespacedService({namespace: 'default', body: {
-        apiVersion: 'v1',
-        kind: 'Service',
-        metadata: service.metadata,
-        spec: service.spec
-      }});
-      
+    };
+
+    await coreApi.createNamespacedService({
+        namespace: 'default', body: {
+            apiVersion: 'v1',
+            kind: 'Service',
+            metadata: service.metadata,
+            spec: service.spec
+        }
+    });
+
     // Update DB
     res.status(200).send({ status: "success", message: "Service created" });
 }));
@@ -155,11 +159,11 @@ buildRouter.post("/create/service/:subdomain", asyncHandler(async (req: Request,
 buildRouter.post("/update-ingress/:subdomain", asyncHandler(async (req: Request, res: Response) => {
     const { subdomain } = req.params;
     // TODO: use proper naming. change hardcoded ingress name
-    const ingress = await networkingApi.readNamespacedIngress({namespace: 'default', name: 'todoapp-ingress'});
+    const ingress = await networkingApi.readNamespacedIngress({ namespace: 'default', name: 'todoapp-ingress' });
     if (!ingress.spec) {
         return res.status(400).send({ status: "error", message: "Ingress not found" });
     }
-    if(!ingress.spec.rules) {
+    if (!ingress.spec.rules) {
         ingress.spec.rules = [];
     }
     ingress.spec.rules.push({
@@ -168,8 +172,8 @@ buildRouter.post("/update-ingress/:subdomain", asyncHandler(async (req: Request,
             paths: [{ path: '/', pathType: 'Prefix', backend: { service: { name: `service-${subdomain}`, port: { number: 80 } } } }]
         }
     });
-    await networkingApi.replaceNamespacedIngress({namespace: 'default', name: 'todoapp-ingress', body: ingress});
-    
+    await networkingApi.replaceNamespacedIngress({ namespace: 'default', name: 'todoapp-ingress', body: ingress });
+
     res.status(200).send({ status: "success", message: "Ingress updated" });
 }));
 

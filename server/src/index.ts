@@ -113,7 +113,7 @@ wss.on('connection', (ws) => {
         );
       }catch(err){
         // console.error('Error streaming logs:', err);
-        ws.send(JSON.stringify({ error: 'Error streaming logs' }));
+        ws.send(JSON.stringify({ error: 'Error streaming logs. Mostly container not created yet' }));
       }
     }
   });

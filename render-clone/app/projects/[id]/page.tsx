@@ -22,7 +22,6 @@ const ManageProjectsPage = () => {
     const [selectedBranch, setSelectedBranch] = useState("");
     const [deployment, setProjects] = useState<Projects | null>(null);
     const [logs, setLogs] = useState<string[]>([]);
-    const [htmlLogs, setHtmlLogs] = useState<string>("");
     const [commits, setCommits] = useState<string[]>([]);
     const [branches, setBranches] = useState<string[]>([]);
     const [selectedCommit, setSelectedCommit] = useState<string>("");
@@ -136,9 +135,8 @@ const ManageProjectsPage = () => {
 
         ws.onmessage = (event) => {
             const message = event.data;
-            const htmlLogs = convert.toHtml(message);
-            setHtmlLogs(htmlLogs);
-            setLogs(prev => [...prev, htmlLogs]); // prepend new log to the top
+            // const htmlLogs = convert.toHtml(message);
+            setLogs(prev => [...prev, message]); // prepend new log to the top
         };
 
         ws.onerror = (error) => {
@@ -163,14 +161,15 @@ const ManageProjectsPage = () => {
             console.log(err);
         }
     }
-    const pullAndDeploy = async () => {
+    const pullAndDeploy = async (e: React.FormEvent) => {
+        e.preventDefault();
         const { installCommand, buildCommand, runCommand, envVariables, projectType } = projectSettings;
-        if (buildCommand === "" || installCommand === "" || runCommand === "" || envVariables === "") {
+        if (buildCommand === "" && installCommand === "" && runCommand === "" && envVariables === "") {
             alert("Please update the project settings first");
             return;
         }
         try {
-            const response = await api.post('/builds/create/v2', {
+            const response = await api.post('/builds/create/', {
                 project_id: params.id,
                 github_url: github_url,
                 to_deploy_commit_hash: selectedCommit,
@@ -250,6 +249,7 @@ const ManageProjectsPage = () => {
                     </div>
                 </div>
             </div>
+            {/* Manage Project section */}
             <div className='w-[70%]'>
                 <div className='flex justify-between'>
                     <h2 className="text-2xl font-bold">{"Manage Project"}</h2>
@@ -262,12 +262,12 @@ const ManageProjectsPage = () => {
                 {/* <Divider className='my-4' /> */}
                 <Link className='text-sm' target='_blank' href={github_url}>{github_url}</Link>
                 <form className="mt-4 flex flex-wrap gap-2">
-                    <Select className="max-w-xs" label="Select Branch" isRequired defaultSelectedKeys={[]} onChange={(e) => { setSelectedBranch(e.target.value) }}>
+                    <Select className="max-w-xs" label="Select Branch" isRequired selectedKeys={selectedBranch ? [selectedBranch] : []} onChange={(e) => { setSelectedBranch(e.target.value) }}>
                         {branches.map((branch) => (
                             <SelectItem key={branch}>{branch}</SelectItem>
                         ))}
                     </Select>
-                    <Select className="max-w-xs" label="Select Commit" isRequired defaultSelectedKeys={[]} onChange={(e) => { setSelectedCommit(e.target.value) }}>
+                    <Select className="max-w-xs" label="Select Commit" isRequired selectedKeys={selectedCommit ? [selectedCommit] : []} onChange={(e) => { setSelectedCommit(e.target.value) }}>
                         {commits.map((commit) => (
                             <SelectItem key={commit}>{commit}</SelectItem>
                         ))}
@@ -287,8 +287,8 @@ const ManageProjectsPage = () => {
                     <div className=' p-4 rounded-md max-h-[42vh] overflow-y-auto'>
                         {logs.map((log, index) => {
                             return (
-                                <div key={index + "logg"} dangerouslySetInnerHTML={{ __html: log }} />
-                                // <p key={index} className='text-sm text-gray-100'>{log}</p>
+                                // <div key={index + "logg"} dangerouslySetInnerHTML={{ __html: log }} />
+                                <p key={index} className='text-md text-gray-100'>{log}</p>
                             )
                         })}
                         <Spinner />
@@ -327,7 +327,7 @@ const ManageProjectsPage = () => {
                                     label="Env Variables (as a single string)"
                                     value={projectSettings.envVariables}
                                     onChange={e => setProjectSettings(prev => ({ ...prev, envVariables: e.target.value }))}
-                                    placeholder="KEY1=VALUE1,KEY2=VALUE2"
+                                    placeholder={`KEY1=VALUE1\nKEY2=VALUE2`}
                                     name="envVariables"
                                 />
                                 {/* Project Type selection as clickable icons */}
