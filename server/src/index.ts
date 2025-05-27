@@ -8,6 +8,8 @@ import Websocket from "ws";
 import buildRouter from "./routes/builds";
 import { PassThrough } from 'stream'; 
 import { stream } from "./configs/k8s";
+import cookieParser from "cookie-parser";
+
 const wss = new Websocket.Server({ port: 8080 });
 
 
@@ -26,7 +28,7 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   console.error(err.stack);
   res.status(500).json({ message: "Something went wrong", error: err.message });
 });
-
+app.use(cookieParser());
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/deployments", deploymentRouter);
 app.use("/api/v1/builds/", buildRouter)

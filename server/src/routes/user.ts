@@ -2,13 +2,14 @@ import express, { Request, Response } from "express";
 import { asyncHandler } from "../util/common";
 import { createUser, loginUser } from "../services/authServices";
 import { client } from "../configs/db";
+import { jwtMiddleware } from "../middleware/auth";
 
 const userRouter = express.Router();
 
-userRouter.get("/:id", asyncHandler(async (req: Request, res: Response) => {
-    throw new Error("This is a test error");
-    res.send(`User ID:`);
+userRouter.get("/me", jwtMiddleware, asyncHandler(async (req: Request, res: Response) => {
+    res.send(req.user);
 }));
+
 
 userRouter.post("/login", asyncHandler(async (req: Request, res: Response) => {
     const {email, username, password} = req.body;
@@ -40,6 +41,13 @@ userRouter.post("/signup", asyncHandler(async (req: Request, res: Response) => {
     });
 }));
 
+// logout
+userRouter.post("/logout", asyncHandler(async (req: Request, res: Response) => {
+    res.clearCookie("token");
+    res.status(200).json({
+        message: "User logged out successfully",
+    });
+}));
 
 
 

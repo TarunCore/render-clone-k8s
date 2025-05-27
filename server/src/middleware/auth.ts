@@ -1,24 +1,39 @@
 import jwt from "jsonwebtoken";
 
 import { NextFunction, Request, Response } from "express";
-interface AuthenticatedRequest extends Request {
-    userId?: string;
+
+declare global {
+  namespace Express {
+    interface Request {
+      user?: {
+        id: string;
+        username: string;
+        email: string;
+      }
+    }
+  }
 }
 
-async function jwtAuth(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+export function jwtMiddleware(req: Request, res: Response, next: NextFunction) {
   const token = req.cookies.token;
   if (!token) {
-    return res.status(401).json({ message: "Unauthorized" });
+    res.status(401).json({ message: "Unauthorized" });
+    return
   }
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET as string);
     if(typeof decoded == 'string') {
-        return res.status(401).json({ message: "Unauthorized" });
+        res.status(401).json({ message: "Unauthorized" });
+        return
     }
-    req.userId = decoded.id;
+    req.user = decoded as {
+      id: string;
+      username: string;
+      email: string;
+    };
     next();
   } catch (err) {
-    return res.status(401).json({ message: "Unauthorized" });
+    res.status(401).json({ message: "Unauthorized" });
   }
-    
+
 }
