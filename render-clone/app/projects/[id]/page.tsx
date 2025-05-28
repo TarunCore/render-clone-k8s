@@ -216,8 +216,8 @@ const ManageProjectsPage = () => {
                 <Divider className='my-4' />
                 <div className='flex flex-col gap-1'>
                     <h2 className="text-md">{"Name: " + deployment?.name}</h2>
-                    <p className="text-gray-400 text-sm">{"Projects ID: " + params.id}</p>
-                    {description && <p className="text-gray-400 text-sm">{"Description: " + description}</p>}
+                    <p className="dark:text-gray-400 text-sm">{"Projects ID: " + params.id}</p>
+                    {description && <p className="dark:text-gray-400 text-sm">{"Description: " + description}</p>}
                     {status && (
                         <>
                             <p className={status === "pending" ? "text-red-400" : "text-green-500"}>
@@ -225,10 +225,10 @@ const ManageProjectsPage = () => {
                             </p>
                         </>
                     )}
-                    <p className="text-gray-400 text-sm">
+                    <p className="dark:text-gray-400 text-sm">
                         Last Deployed: {last_deployed_hash || "N/A"}
                     </p>
-                    <p className="text-gray-400 text-sm">
+                    <p className="dark:text-gray-400 text-sm">
                         Last Deployed Time: {last_deployed_at ? new Date(last_deployed_at).toDateString() : "N/A"}
                     </p>
                     <Divider className='my-4' />
@@ -238,12 +238,12 @@ const ManageProjectsPage = () => {
                         {builds.length === 0 && <p className="text-gray-400 text-sm">No builds found</p>}
                         {builds.map((build) => {
                             return <div className='flex flex-col gap-1 border-blue-300 border-2 p-2 rounded-md' key={build.id}>
-                                <p className="text-gray-300 text-sm">{"Build ID: " + build.id}</p>
-                                <p className="text-gray-400 text-sm">{"Commit Hash: " + build.commit_hash}</p>
-                                <p className="text-gray-400 text-sm">{"Commit Message: " + build.commit_message}</p>
-                                <p className="text-gray-400 text-sm">{"Build Started At: " + new Date(build.build_started_at).toLocaleTimeString() + " " + new Date(build.build_started_at).toLocaleDateString()}</p>
-                                <p className="text-gray-400 text-sm">{"Status: " + build.status}</p>
-                                <p className="text-gray-400 text-sm">{"Status Message: " + build.status_message}</p>
+                                <p className="dark:text-gray-300 text-sm">{"Build ID: " + build.id}</p>
+                                <p className="dark:text-gray-400 text-sm">{"Commit Hash: " + build.commit_hash}</p>
+                                <p className="dark:text-gray-400 text-sm">{"Commit Message: " + build.commit_message}</p>
+                                <p className="dark:text-gray-400 text-sm">{"Build Started At: " + new Date(build.build_started_at).toLocaleTimeString() + " " + new Date(build.build_started_at).toLocaleDateString()}</p>
+                                <p className="dark:text-gray-400 text-sm">{"Status: " + build.status}</p>
+                                <p className="dark:text-gray-400 text-sm">{"Status Message: " + build.status_message}</p>
                             </div>
                         })
                         }
@@ -289,7 +289,7 @@ const ManageProjectsPage = () => {
                         {logs.map((log, index) => {
                             return (
                                 // <div key={index + "logg"} dangerouslySetInnerHTML={{ __html: log }} />
-                                <p key={index} className='text-md text-gray-100'>{log}</p>
+                                <p key={index} className='text-md dark:text-gray-100'>{log}</p>
                             )
                         })}
                         <Spinner />

@@ -1,13 +1,15 @@
 "use client";
-import { useState } from "react";
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import api from "./axios";
 import { NavbarItem } from "@heroui/navbar";
 import { Button } from "@heroui/button";
 import LogoutIcon from "./icons/LogoutIcon";
+import { link as linkStyles } from "@heroui/theme";
+import NextLink from "next/link";
+import clsx from "clsx";
 
-const UserNav = () => {
-    const [username, setUsername] = useState<string | null>(null);
+export function useUser() {
+  const [username, setUsername] = useState<string | null>(null);
   useEffect(() => {
     async function fetchUser() {
       try {
@@ -21,6 +23,11 @@ const UserNav = () => {
     }
     fetchUser();
   }, []);
+  return { username };
+}
+
+const UserNav = () => {
+    const { username } = useUser();
     return (
         <>
 
@@ -41,6 +48,22 @@ const UserNav = () => {
         </Button>
         </>
         )}
+        {
+          !username && (
+            <NavbarItem>
+              <NextLink
+                className={clsx(
+                  linkStyles({ color: "foreground" }),
+                  "data-[active=true]:text-primary data-[active=true]:font-medium",
+                )}
+                color="foreground"
+                href={"/auth/login"}
+              >
+                Login
+              </NextLink>
+            </NavbarItem>
+          )
+        }
         </>
     )
 }

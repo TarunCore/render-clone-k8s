@@ -60,7 +60,7 @@ export default function LoginPage() {
         password: formValues.password
       });
       if(response.status === 200){
-          router.push('/projects');
+          window.location.href = "/projects";
       }
     } catch (validationError: any) {
       const formattedErrors: LoginFormErrors = {};
@@ -84,9 +84,9 @@ export default function LoginPage() {
 
   return (
     <div className="flex items-center justify-center px-4 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md space-y-8 p-8 rounded-lg shadow-md bg-neutral-900">
+      <div className="w-full max-w-md space-y-8 p-8 rounded-lg shadow-md dark:bg-neutral-900">
         <div>
-          <h2 className="mt-2 text-center text-3xl font-bold tracking-tight text-white">
+          <h2 className="mt-2 text-center text-3xl font-bold tracking-tight dark:text-white">
             Sign in to your account
           </h2>
         </div>
@@ -134,8 +134,8 @@ export default function LoginPage() {
           />
 
           <div className="flex items-center justify-between w-full">
-            <p className="text-sm text-white">Don't have an account?</p>
-            <Link href="/auth/signup" className="text-sm text-primary-600 hover:underline">
+            <p className="text-sm dark:text-white">Don't have an account?</p>
+            <Link href="/auth/signup" className="text-sm dark:text-primary-600 hover:underline">
               Create an account
             </Link>
           </div>

@@ -132,11 +132,11 @@ const ProjectsPage = () => {
             </Modal>
             {projects.map((deployment) => {
                 return (
-                    <div onClick={()=>router.push("/projects/"+deployment.id)} key={deployment.id + "dep"} className='border-1 hover:shadow-md border-gray-600 cursor-pointer rounded-2xl p-4 my-2 bg-neutral-800 hover:bg-neutral-900 animation duration-100'>
+                    <div onClick={()=>router.push("/projects/"+deployment.id)} key={deployment.id + "dep"} className='border-1 hover:shadow-md border-gray-600 cursor-pointer rounded-2xl p-4 my-2 dark:bg-neutral-800 dark:hover:bg-neutral-900 animation duration-100'>
                         <h2 className="font-bold">{deployment.name}</h2>
                         <div className='flex justify-between'>
                             <div>
-                                <p className="text-gray-400 text-sm">{deployment.description}</p>
+                                <p className="dark:text-gray-400 text-sm">{deployment.description}</p>
                                 <Link className='text-sm' href={deployment.github_url}>{deployment.github_url}</Link>
                             </div>
 
