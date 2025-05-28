@@ -14,6 +14,7 @@ import EyeIcon from '@/components/icons/EyeIcon';
 import SettingsIcon from '@/components/icons/SettingsIcon';
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/modal";
 import { Input, Textarea } from "@heroui/input";
+import RefreshIcon from '@/components/icons/RefreshIcon';
 const convert = new AnsiToHtml();
 // const ws = new WebSocket('ws://localhost:3001/');
 
@@ -280,7 +281,7 @@ const ManageProjectsPage = () => {
                     <div className='flex items-center gap-2 mt-8'>
                         <h2 className="text-2xl font-bold">Logs</h2>
                         <Button isIconOnly aria-label="Watch" color="warning" variant="faded" onClick={watchLogs}>
-                            <EyeIcon />
+                            <RefreshIcon />
                         </Button>
                     </div>
                     <Divider className='my-4' />
@@ -338,7 +339,7 @@ const ManageProjectsPage = () => {
                                         className={`border-2 rounded-lg p-1 ${projectSettings.projectType === 'nodejs' ? 'border-blue-500' : 'border-transparent'}`}
                                         aria-label="Node.js"
                                     >
-                                        <img src="https://skillicons.dev/icons?i=nodejs" height="48" width="48" alt="Node.js logo" />
+                                        <img src="/icons/nodejs.svg" height="48" width="48" alt="Node.js logo" />
                                     </button>
                                     <button
                                         type="button"
@@ -346,7 +347,7 @@ const ManageProjectsPage = () => {
                                         className={`border-2 rounded-lg p-1 ${projectSettings.projectType === 'python' ? 'border-blue-500' : 'border-transparent'}`}
                                         aria-label="Python"
                                     >
-                                        <img src="https://skillicons.dev/icons?i=python" height="48" width="48" alt="Python logo" />
+                                        <img src="/icons/python.svg" height="48" width="48" alt="Python logo" />
                                     </button>
                                     
                                 </div>

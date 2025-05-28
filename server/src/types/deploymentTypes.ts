@@ -13,7 +13,7 @@
 //     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 //     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 // );
-export type Projectstatus = "pending" | "building" | "success" | "failed" | "cancelling" | "cancelled";
+export type Projectstatus = "pending" | "building" | "success" | "failed" | "cancelled";
 
 export type Project = {
     id: string;

@@ -110,7 +110,7 @@ const ProjectsPage = () => {
                                         className={`border-2 rounded-lg p-1 ${projectType === 'nodejs' ? 'border-blue-500' : 'border-transparent'}`}
                                         aria-label="Node.js"
                                     >
-                                        <img src="https://skillicons.dev/icons?i=nodejs" height="48" width="48" alt="Node.js logo" />
+                                        <img src="/icons/nodejs.svg" height="48" width="48" alt="Node.js logo" />
                                     </button>
                                     <button
                                         type="button"
@@ -118,7 +118,7 @@ const ProjectsPage = () => {
                                         className={`border-2 rounded-lg p-1 ${projectType === 'python' ? 'border-blue-500' : 'border-transparent'}`}
                                         aria-label="Python"
                                     >
-                                        <img src="https://skillicons.dev/icons?i=python" height="48" width="48" alt="Python logo" />
+                                        <img src="/icons/python.svg" height="48" width="48" alt="Python logo" />
                                     </button>
                                 </div>
                             </div>

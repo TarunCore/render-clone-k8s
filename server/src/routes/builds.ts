@@ -7,7 +7,7 @@ import k8sApi, { coreApi, networkingApi } from "../configs/k8s";
 const buildRouter = express.Router();
 interface Command {
     installCommand?: string;
-    buildCommand?: string | null;
+    buildCommand?: string;
     runCommand?: string;
     envVariables?: string;
 }
@@ -21,20 +21,20 @@ function getCommand(githubUrl: string, commands: Command) {
     if (commands.installCommand) {
         parts.push(commands.installCommand);
     }
-    if (commands.buildCommand) {
-        parts.push(commands.buildCommand);
-    }
-    if (commands.runCommand) {
-        parts.push(commands.runCommand);
-    }
     if (commands.envVariables) {
+        parts.push('touch .env');
         const vars = commands.envVariables
             .split("\n")
             .map(v => v.trim())
             .filter(Boolean)
             .map(v => `echo "${v}" >> .env`);
-        parts.unshift('touch .env');
         parts.push(...vars);
+    }
+    if (commands.buildCommand) {
+        parts.push(commands.buildCommand);
+    }
+    if (commands.runCommand) {
+        parts.push(commands.runCommand);
     }
 
     return parts.join(' && ');
@@ -82,12 +82,6 @@ buildRouter.post("/create/", asyncHandler(async (req: Request, res: Response) =>
         runCommand: project.rows[0].run_commands,
         envVariables: project.rows[0].env_variables
     });
-    // const command = getCommand(github_url, {
-    //     buildCommand: null,
-    //     installCommand: "npm install",
-    //     runCommand: "node index.js",
-    //     envVariables: env
-    // });
     const podManifest = getPodManifest(project_id, command, project_type);
     // if already exists, apply the podManifest
     try {
@@ -113,12 +107,12 @@ buildRouter.post("/create/", asyncHandler(async (req: Request, res: Response) =>
     res.status(200).send({ status: "success", message: "Build started", data, podManifest });
 
 }));
-buildRouter.post("/create/service/:subdomain", asyncHandler(async (req: Request, res: Response) => {
-    const { subdomain } = req.params;
+buildRouter.post("/create/service/:project_id", asyncHandler(async (req: Request, res: Response) => {
+    const { project_id } = req.params;
     const service = {
-        metadata: { name: `service-${subdomain}` }, // TODO: use proper naming
+        metadata: { name: `service-${project_id}` }, // TODO: use proper naming
         spec: {
-            selector: { app: `${subdomain}` },
+            selector: { app: `${project_id}` },
             ports: [{ port: 80, targetPort: 3000 }],
             type: 'ClusterIP'
         }
@@ -177,23 +171,19 @@ buildRouter.post("/update-ingress/:subdomain", asyncHandler(async (req: Request,
     res.status(200).send({ status: "success", message: "Ingress updated" });
 }));
 
+buildRouter.get("/status/:project_id", asyncHandler(async (req: Request, res: Response) => {
+    const { project_id } = req.params;
+    const build = await k8sApi.readNamespacedPod({ namespace: 'default', name: `${project_id}-pod` });
+    if (build.status?.phase === 'Error' || build.status?.phase === 'Completed') {
+        console.log("Build failed. Updating project status to failed");
+        await client.query("UPDATE projects SET status = 'failed' WHERE id = $1", [project_id]);
+        client.query("UPDATE builds SET status = 'failed' WHERE project_id = $1", [project_id]);
+    }
 
+    const data = await client.query("SELECT * FROM projects WHERE id = $1 ORDER BY build_started_at DESC LIMIT 1", [project_id]);
+    res.status(200).send({ status: "success", message: "Build status", data: data.rows[0] });
+}));
 
-
-// buildRouter.post("/watch-logs/:deploymentId/:containerId", asyncHandler(async (req: Request, res: Response) => {
-//     const { containerId, deploymentId } = req.params;
-//     const spawn = require('child_process').spawn;
-//     const logStream = spawn('docker', ['logs', '-f', containerId]);
-//     console.log("watching logs for: " + containerId);
-//     logStream.stdout.on('data', (data: any) => {
-//         // const cleanLogs = stripAnsi(data.toString());
-//         const cleanLogs = data.toString();
-
-//         console.log("cleanLogs");
-//         socket.send(JSON.stringify({ containerId, logs: cleanLogs, deploymentId, type: "log" }));
-//     });
-//     res.send({ status: "success", message: "Websocket connection initialized to central server" });
-// }));
 
 
 export default buildRouter;
