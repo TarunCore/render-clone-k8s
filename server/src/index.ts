@@ -101,7 +101,7 @@ wss.on('connection', (ws) => {
       try{
         await stream.log(
           'default',
-          `${deploymentId}-pod`,
+          `pod-${deploymentId}`,
           deploymentId,
           logStream,
           {

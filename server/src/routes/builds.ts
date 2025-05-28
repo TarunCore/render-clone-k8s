@@ -3,6 +3,7 @@ import { asyncHandler } from "../util/common";
 import { createUser, loginUser } from "../services/authServices";
 import { client } from "../configs/db";
 import k8sApi, { coreApi, networkingApi } from "../configs/k8s";
+import { createClusterIPService, updateIngress } from "../services/buildService";
 
 const buildRouter = express.Router();
 interface Command {
@@ -50,7 +51,7 @@ const projectTypeToImage = {
 function getPodManifest(projectId: string, command: string, projectType: keyof typeof projectTypeToImage) { // TODO: change to project_id
     const podManifest = {
         metadata: {
-            name: `${projectId}-pod`,
+            name: `pod-${projectId}`,
             labels: { app: projectId }
         },
         spec: {
@@ -70,12 +71,12 @@ function getPodManifest(projectId: string, command: string, projectType: keyof t
 }
 
 buildRouter.post("/create/", asyncHandler(async (req: Request, res: Response) => {
-    const { github_url, to_deploy_commit_hash, project_type, project_id, subdomain } = req.body;
+    const { github_url, to_deploy_commit_hash, project_type, project_id } = req.body;
     if (!github_url || !to_deploy_commit_hash || !project_type || !project_id) {
         return res.status(400).send({ status: "error", message: "Missing required fields" });
     }
-    // Apply podManifest
-    const project = await client.query("SELECT build_commands, install_commands, run_commands, env_variables FROM projects WHERE id = $1", [project_id]);
+    
+    const project = await client.query("SELECT subdomain, build_commands, install_commands, run_commands, env_variables FROM projects WHERE id = $1", [project_id]);
     const command = getCommand(github_url, {
         buildCommand: project.rows[0].build_commands,
         installCommand: project.rows[0].install_commands,
@@ -83,23 +84,31 @@ buildRouter.post("/create/", asyncHandler(async (req: Request, res: Response) =>
         envVariables: project.rows[0].env_variables
     });
     const podManifest = getPodManifest(project_id, command, project_type);
-    // if already exists, apply the podManifest
+    
     try {
-        const existingPod = await k8sApi.readNamespacedPod({ namespace: 'default', name: `${project_id}-pod` });
+        const existingPod = await k8sApi.readNamespacedPod({ namespace: 'default', name: `pod-${project_id}` });
         if (existingPod) {
-            await k8sApi.deleteNamespacedPod({ namespace: 'default', name: `${project_id}-pod` });
+            await k8sApi.deleteNamespacedPod({ namespace: 'default', name: `pod-${project_id}` });
         }
     } catch (e) {
         console.log("Pod not found. Creating new pod.")
     }
 
-    // console.dir(podManifest, { depth: null });
-
+    // Apply podManifest
     const data = await k8sApi.createNamespacedPod({
         namespace: 'default',
         body: podManifest
     });
-    // Update DB
+
+    const service = await createClusterIPService(project_id);
+    if (!service) {
+        return res.status(400).send({ status: "error", message: "Service creation failed" });
+    }
+    const ingress = await updateIngress(project_id, project.rows[0].subdomain); // subdomain used for first time
+    if (!ingress) {
+        return res.status(400).send({ status: "error", message: "Ingress update failed" });
+    }
+
     await client.query("UPDATE projects SET status = 'building' WHERE id = $1", [project_id]);
     await client.query(`INSERT INTO builds (status, status_message,build_started_at, 
         commit_hash, commit_message,project_id)
@@ -108,6 +117,8 @@ buildRouter.post("/create/", asyncHandler(async (req: Request, res: Response) =>
 
 }));
 buildRouter.post("/create/service/:project_id", asyncHandler(async (req: Request, res: Response) => {
+    res.send("Not available");
+    return;
     const { project_id } = req.params;
     const service = {
         metadata: { name: `service-${project_id}` }, // TODO: use proper naming
@@ -126,54 +137,33 @@ buildRouter.post("/create/service/:project_id", asyncHandler(async (req: Request
             spec: service.spec
         }
     });
-
-    // Update DB
     res.status(200).send({ status: "success", message: "Service created" });
 }));
-// add the domain to the existing ingress
-// apiVersion: networking.k8s.io/v1
-// kind: Ingress
-// metadata:
-//   name: todoapp-ingress
-//   annotations:
-//     nginx.ingress.kubernetes.io/rewrite-target: /
-// spec:
-//   rules:
-//   - host: todoapp.my-domain.com
-//     http:
-//       paths:
-//       - path: /
-//         pathType: Prefix
-//         backend:
-//           service:
-//             name: todoapp-service
-//             port:
-//               number: 80
 
-buildRouter.post("/update-ingress/:subdomain", asyncHandler(async (req: Request, res: Response) => {
-    const { subdomain } = req.params;
-    // TODO: use proper naming. change hardcoded ingress name
-    const ingress = await networkingApi.readNamespacedIngress({ namespace: 'default', name: 'todoapp-ingress' });
-    if (!ingress.spec) {
-        return res.status(400).send({ status: "error", message: "Ingress not found" });
-    }
-    if (!ingress.spec.rules) {
-        ingress.spec.rules = [];
-    }
-    ingress.spec.rules.push({
-        host: `${subdomain}.my-domain.com`,
-        http: {
-            paths: [{ path: '/', pathType: 'Prefix', backend: { service: { name: `service-${subdomain}`, port: { number: 80 } } } }]
-        }
-    });
-    await networkingApi.replaceNamespacedIngress({ namespace: 'default', name: 'todoapp-ingress', body: ingress });
-
+buildRouter.post("/update-ingress/:project_id/:subdomain", asyncHandler(async (req: Request, res: Response) => {
+    res.send("Not available");
+    return;
+    const { project_id, subdomain } = req.params;
+    // const ingress = await networkingApi.readNamespacedIngress({ namespace: 'default', name: 'main-ingress' });
+    // if (!ingress.spec) {
+    //     return res.status(400).send({ status: "error", message: "Ingress not found" });
+    // }
+    // if (!ingress.spec.rules) {
+    //     ingress.spec.rules = [];
+    // }
+    // ingress.spec.rules.push({
+    //     host: `${subdomain}.my-domain.com`,
+    //     http: {
+    //         paths: [{ path: '/', pathType: 'Prefix', backend: { service: { name: `service-${project_id}`, port: { number: 80 } } } }]
+    //     }
+    // });
+    // await networkingApi.replaceNamespacedIngress({ namespace: 'default', name: 'main-ingress', body: ingress });
     res.status(200).send({ status: "success", message: "Ingress updated" });
 }));
 
 buildRouter.get("/status/:project_id", asyncHandler(async (req: Request, res: Response) => {
     const { project_id } = req.params;
-    const build = await k8sApi.readNamespacedPod({ namespace: 'default', name: `${project_id}-pod` });
+    const build = await k8sApi.readNamespacedPod({ namespace: 'default', name: `pod-${project_id}` });
     if (build.status?.phase === 'Error' || build.status?.phase === 'Completed') {
         console.log("Build failed. Updating project status to failed");
         await client.query("UPDATE projects SET status = 'failed' WHERE id = $1", [project_id]);
