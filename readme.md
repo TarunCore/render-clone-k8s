@@ -1,4 +1,4 @@
-# 🚀 sudo push - render clone
+# 🚀 sudo deploy - render clone
 
 A deployment service similar to [render.com](https://render.com), powered by **Kubernetes** and designed for simplicity and scalability.
 
@@ -54,4 +54,19 @@ kubectl apply -f ingress.yml
 
 ---
 
-Feel free to ask if you'd like badges, Dockerfile notes, or deployment steps added.
+## TLS
+```sh
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+  -keyout tls.key -out tls.crt \
+  -subj "/CN=*.ffcscombogen.in/O=ffcscombogen.in" \
+  -addext "subjectAltName=DNS:*.ffcscombogen.in"
+
+```
+
+```sh
+kubectl create secret tls wildcard-ffcscombogen-tls \
+  --cert=tls.crt \
+  --key=tls.key \
+  -n default
+```
+Use this ingress file for HTTPS `server/k8s/own-tls.ingress.yml`

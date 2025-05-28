@@ -1,9 +1,11 @@
 import express, { Request, Response } from "express";
 import { asyncHandler } from "../util/common";
-import { createUser, loginUser } from "../services/authServices";
+import { createUser, hasProjectPermission, loginUser } from "../services/authServices";
 import { client } from "../configs/db";
 import k8sApi, { coreApi, networkingApi } from "../configs/k8s";
 import { createClusterIPService, updateIngress } from "../services/buildService";
+import { jwtMiddleware } from "../middleware/auth";
+import logger from "../logger";
 
 const buildRouter = express.Router();
 interface Command {
@@ -70,7 +72,12 @@ function getPodManifest(projectId: string, command: string, projectType: keyof t
     return podManifest;
 }
 
-buildRouter.post("/create/", asyncHandler(async (req: Request, res: Response) => {
+buildRouter.post("/create/", jwtMiddleware, asyncHandler(async (req: Request, res: Response) => {
+    if(await hasProjectPermission(req.body.project_id, req.user)){
+        res.status(401);
+        return;
+    }
+
     const { github_url, to_deploy_commit_hash, project_type, project_id } = req.body;
     if (!github_url || !to_deploy_commit_hash || !project_type || !project_id) {
         return res.status(400).send({ status: "error", message: "Missing required fields" });
@@ -165,7 +172,7 @@ buildRouter.get("/status/:project_id", asyncHandler(async (req: Request, res: Re
     const { project_id } = req.params;
     const build = await k8sApi.readNamespacedPod({ namespace: 'default', name: `pod-${project_id}` });
     if (build.status?.phase === 'Error' || build.status?.phase === 'Completed') {
-        console.log("Build failed. Updating project status to failed");
+        logger.error(`Build failed for project ${project_id}`);
         await client.query("UPDATE projects SET status = 'failed' WHERE id = $1", [project_id]);
         client.query("UPDATE builds SET status = 'failed' WHERE project_id = $1", [project_id]);
     }

@@ -9,6 +9,7 @@ import buildRouter from "./routes/builds";
 import { PassThrough } from 'stream'; 
 import { stream } from "./configs/k8s";
 import cookieParser from "cookie-parser";
+import logger from "./logger";
 
 const wss = new Websocket.Server({ port: 8080 });
 
@@ -65,13 +66,13 @@ const frontendClients = new Map(); // Map<deploymentId, Set<clientWs>>
 // });
 
 wss.on('connection', (ws) => {
-  console.log('Client connected');
+  logger.info('WS client connected');
 
   // Keep track of the logStream for this connection so we can close it on disconnect
   let logStream: PassThrough | null = null;
 
   ws.on('message', async(message) => {
-    console.log('Received:', message.toString());
+    logger.info('Received: ' + message.toString());
 
     let parsed;
     try {
@@ -82,7 +83,7 @@ wss.on('connection', (ws) => {
       return;
     }
 
-    let { type, deploymentId } = parsed;
+    const { type, deploymentId } = parsed;
 
     if (type === 'frontend-subscribe' && deploymentId) {
       // If there's an existing logStream, end it before creating a new one
@@ -97,7 +98,6 @@ wss.on('connection', (ws) => {
           ws.send(chunk.toString());
         }
       });
-      // deploymentId ="4";
       try{
         await stream.log(
           'default',
@@ -119,7 +119,7 @@ wss.on('connection', (ws) => {
   });
 
   ws.on('close', () => {
-    console.log('Client disconnected');
+    logger.info('WS client disconnected');
     if (logStream) {
       logStream.end();
     }
