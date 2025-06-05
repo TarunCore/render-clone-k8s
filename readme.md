@@ -54,6 +54,10 @@ kubectl apply -f ingress.yml
 
 ---
 
+## Architecture
+![image](https://github.com/user-attachments/assets/6076b23e-4ce6-4946-94aa-d397cc866890)
+
+
 ## TLS
 ```sh
 openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
