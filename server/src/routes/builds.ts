@@ -73,10 +73,10 @@ function getPodManifest(projectId: string, command: string, projectType: keyof t
 }
 
 buildRouter.post("/create/", jwtMiddleware, asyncHandler(async (req: Request, res: Response) => {
-    if(await hasProjectPermission(req.body.project_id, req.user)){
-        res.status(401);
-        return;
-    }
+    // if(await hasProjectPermission(req.body.project_id, req.user)){
+    //     res.status(401);
+    //     return;
+    // }
 
     const { github_url, to_deploy_commit_hash, project_type, project_id } = req.body;
     if (!github_url || !to_deploy_commit_hash || !project_type || !project_id) {

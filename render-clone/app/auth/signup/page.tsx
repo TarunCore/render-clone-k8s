@@ -11,6 +11,7 @@ import * as Yup from "yup";
 import Link from "next/link";
 import api from "@/components/axios";
 import { useRouter } from "next/navigation";
+import { addToast } from "@heroui/toast";
 
 interface LoginFormValues {
   username: string;
@@ -69,6 +70,12 @@ export default function SignupPage() {
       // Here you would handle the actual login logic (API call, etc.)
     } catch (validationError: any) {
       const formattedErrors: LoginFormErrors = {};
+      addToast({
+        title: "Signup failed",
+        description: "Please check your username and password",
+        variant: "flat",
+        color: "danger",
+      });
       if (validationError.inner) {
         validationError.inner.forEach((err: any) => {
           if (err.path) {

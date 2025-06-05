@@ -4,12 +4,12 @@ A deployment service similar to [render.com](https://render.com), powered by **K
 
 ---
 
-## 🧱 Project Structure
+## Project Structure
 
 ```
 .
-├── render-clone/    # Frontend - Built with Next.js 15
-└── server/          # Backend - Express API & Kubernetes client for managing deployments
+├── render-clone/    # Frontend
+└── server/          # Backend
 ```
 
 - The backend handles the deployment logic and interacts with Kubernetes to spin up pods for different user services.

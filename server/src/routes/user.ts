@@ -14,6 +14,11 @@ userRouter.get("/me", jwtMiddleware, asyncHandler(async (req: Request, res: Resp
 userRouter.post("/login", asyncHandler(async (req: Request, res: Response) => {
     const {email, username, password} = req.body;
     const data = await loginUser(email, username, password);
+    if(!data.success) {
+        return res.status(400).json({
+            message: data.message,
+        });
+    }
     // set cookie for token for 7 days
     res.cookie("token", data.token, {
         httpOnly: true,

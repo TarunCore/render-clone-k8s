@@ -10,6 +10,7 @@ import * as Yup from "yup";
 import Link from "next/link";
 import api from "@/components/axios";
 import { useRouter } from "next/navigation";
+import { addToast } from "@heroui/toast";
 
 interface LoginFormValues {
   username: string;
@@ -64,6 +65,12 @@ export default function LoginPage() {
       }
     } catch (validationError: any) {
       const formattedErrors: LoginFormErrors = {};
+      addToast({
+        title: "Login failed",
+        description: "Please check your username and password",
+        variant: "flat",
+        color: "danger",
+      });
       if (validationError.inner) {
         validationError.inner.forEach((err: any) => {
           if (err.path) {
@@ -83,6 +90,7 @@ export default function LoginPage() {
   };
 
   return (
+    
     <div className="flex items-center justify-center px-4 sm:px-6 lg:px-8">
       <div className="w-full max-w-md space-y-8 p-8 rounded-lg shadow-md dark:bg-neutral-900">
         <div>
