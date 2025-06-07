@@ -8,8 +8,8 @@ A deployment service similar to [render.com](https://render.com), powered by **K
 
 ```
 .
-├── render-clone/    # Frontend
-└── server/          # Backend
+├── client/
+└── server/        
 ```
 
 - The backend handles the deployment logic and interacts with Kubernetes to spin up pods for different user services.
@@ -57,6 +57,16 @@ kubectl apply -f ingress.yml
 ## Architecture
 ![image](https://github.com/user-attachments/assets/6076b23e-4ce6-4946-94aa-d397cc866890)
 
+
+
+## Local k8s Setup with *Kind*
+*Note: ingress doesn't work*
+```sh
+kind create cluster --config clusters.yml --name local
+```
+```sh
+kind delete cluster --name local
+```
 
 ## TLS
 ```sh
