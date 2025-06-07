@@ -54,23 +54,8 @@ export default function LoginPage() {
       const dataToValidate = { ...formValues };
       await validationSchema.validate(dataToValidate, { abortEarly: false });
       setErrors({});
-      // Here you would handle the actual login logic (API call, etc.)
-      const response = await api.post('/users/login', {
-        username: formValues.username,
-        email: formValues.username,
-        password: formValues.password
-      });
-      if(response.status === 200){
-          window.location.href = "/projects";
-      }
     } catch (validationError: any) {
       const formattedErrors: LoginFormErrors = {};
-      addToast({
-        title: "Login failed",
-        description: "Please check your username and password",
-        variant: "flat",
-        color: "danger",
-      });
       if (validationError.inner) {
         validationError.inner.forEach((err: any) => {
           if (err.path) {
@@ -79,6 +64,23 @@ export default function LoginPage() {
         });
       }
       setErrors(formattedErrors);
+    }
+    try {
+      const response = await api.post('/users/login', {
+        username: formValues.username,
+        email: formValues.username,
+        password: formValues.password
+      });
+      if (response.status === 200) {
+        window.location.href = "/projects";
+      }
+    } catch (error) {
+      addToast({
+        title: "Login failed",
+        description: "Please check your username and password",
+        variant: "flat",
+        color: "danger",
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -90,7 +92,7 @@ export default function LoginPage() {
   };
 
   return (
-    
+
     <div className="flex items-center justify-center px-4 sm:px-6 lg:px-8">
       <div className="w-full max-w-md space-y-8 p-8 rounded-lg shadow-md dark:bg-neutral-900">
         <div>
@@ -158,7 +160,7 @@ export default function LoginPage() {
             Sign in
           </Button>
         </Form>
-        
+
       </div>
     </div>
   );

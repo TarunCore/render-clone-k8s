@@ -1,4 +1,5 @@
 import { coreApi, networkingApi } from "../configs/k8s";
+import logger from "../logger";
 
 async function createClusterIPService(projectId: string) {
     const service = {
@@ -20,6 +21,7 @@ async function createClusterIPService(projectId: string) {
             }
         });
     } catch (e) {
+        console.error("Service creation failed:", e);
         return false;
     }
     return true;
@@ -32,6 +34,12 @@ async function updateIngress(projectId: string, subdomain: string) {
     }
     if (!ingress.spec.rules) {
         ingress.spec.rules = [];
+    }
+    // Check if the rule already exists
+    const existingRule = ingress.spec.rules.find(rule => rule.host === `${subdomain}.my-domain.com`);
+    if (existingRule) {
+        logger.info(`Ingress rule for ${subdomain}.my-domain.com already exists, skipping update.`);
+        return true;
     }
     ingress.spec.rules.push({
         host: `${subdomain}.my-domain.com`,

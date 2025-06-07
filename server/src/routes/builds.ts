@@ -73,10 +73,11 @@ function getPodManifest(projectId: string, command: string, projectType: keyof t
 }
 
 buildRouter.post("/create/", jwtMiddleware, asyncHandler(async (req: Request, res: Response) => {
-    // if(await hasProjectPermission(req.body.project_id, req.user)){
-    //     res.status(401);
-    //     return;
-    // }
+    const canAccess = await hasProjectPermission(req.body.project_id, req.user);
+    if(!canAccess) {
+        res.status(401);
+        return;
+    }
 
     const { github_url, to_deploy_commit_hash, project_type, project_id } = req.body;
     if (!github_url || !to_deploy_commit_hash || !project_type || !project_id) {
@@ -97,6 +98,10 @@ buildRouter.post("/create/", jwtMiddleware, asyncHandler(async (req: Request, re
         if (existingPod) {
             await k8sApi.deleteNamespacedPod({ namespace: 'default', name: `pod-${project_id}` });
         }
+        const existingService = await coreApi.readNamespacedService({ namespace: 'default', name: `service-${project_id}` });
+        if (existingService) {
+            await coreApi.deleteNamespacedService({ namespace: 'default', name: `service-${project_id}` });
+        }
     } catch (e) {
         console.log("Pod not found. Creating new pod.")
     }
@@ -109,7 +114,7 @@ buildRouter.post("/create/", jwtMiddleware, asyncHandler(async (req: Request, re
 
     const service = await createClusterIPService(project_id);
     if (!service) {
-        return res.status(400).send({ status: "error", message: "Service creation failed" });
+        return res.status(400).send({ status: "error", message: "Service creation failed", error: service });
     }
     const ingress = await updateIngress(project_id, project.rows[0].subdomain); // subdomain used for first time
     if (!ingress) {

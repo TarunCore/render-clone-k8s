@@ -5,10 +5,14 @@ import { Link } from '@heroui/link';
 import { useRouter } from 'next/navigation';
 import { Projects } from '@/types/projectTypes';
 import { Button } from '@heroui/button';
-import {  Modal,  ModalContent,  ModalHeader,  ModalBody,  ModalFooter} from "@heroui/modal";
+import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/modal";
 import { Input } from "@heroui/input";
 import { Select, SelectItem } from "@heroui/select";
 
+const projectTypes = [
+    { type: "nodejs", label: "Node.js", icon: "nodejs.svg" },
+    { type: "python", label: "Python", icon: "python.svg" },
+]
 
 const ProjectsPage = () => {
     const router = useRouter();
@@ -39,8 +43,7 @@ const ProjectsPage = () => {
     // Optional: handle form submit
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
-        // TODO: Add API call to create deployment
-        try{
+        try {
             const response = await api.post('/projects', {
                 name: projectName,
                 description: description,
@@ -48,11 +51,11 @@ const ProjectsPage = () => {
                 project_type: projectType,
                 subdomain: subdomain
             });
-            if(response.status === 200){
+            if (response.status === 200) {
                 setIsModalOpen(false);
                 fetchData();
             }
-        }catch(e){
+        } catch (e) {
             console.log(e);
         }
     };
@@ -61,8 +64,8 @@ const ProjectsPage = () => {
         // <div className='flex'>
         <div>
             <div className='flex justify-between items-center'>
-            <h1 className="text-2xl font-bold">Projects</h1>
-            <Button variant='flat' color='primary' onClick={() => setIsModalOpen(true)}>Create</Button>
+                <h1 className="text-2xl font-bold">Projects</h1>
+                <Button variant='solid' color='primary' onPress={() => setIsModalOpen(true)}>Create</Button>
             </div>
             <Modal isOpen={isModalOpen} onOpenChange={setIsModalOpen} placement="center">
                 <ModalContent>
@@ -104,7 +107,17 @@ const ProjectsPage = () => {
                                 />
                                 {/* Project Type selection as clickable icons */}
                                 <div className="flex gap-4 items-center mt-2">
-                                    <button
+                                    {projectTypes.map((type) => {
+                                        return <button
+                                            type="button"
+                                            key={type.type}
+                                            onClick={() => setProjectType(type.type)}
+                                            className={`border-2 rounded-lg p-1 ${projectType === type.type ? 'border-blue-500' : 'border-transparent'}`}
+                                            aria-label={type.label}>
+                                            <img src={`/icons/${type.icon}`} height="48" width="48" alt={`${type.label} logo`} />
+                                        </button>
+                                    })}
+                                    {/* <button
                                         type="button"
                                         onClick={() => setProjectType('nodejs')}
                                         className={`border-2 rounded-lg p-1 ${projectType === 'nodejs' ? 'border-blue-500' : 'border-transparent'}`}
@@ -119,7 +132,7 @@ const ProjectsPage = () => {
                                         aria-label="Python"
                                     >
                                         <img src="/icons/python.svg" height="48" width="48" alt="Python logo" />
-                                    </button>
+                                    </button> */}
                                 </div>
                             </div>
                         </ModalBody>
@@ -130,9 +143,15 @@ const ProjectsPage = () => {
                     </form>
                 </ModalContent>
             </Modal>
+            {projects.length === 0 && (
+                <div className='flex justify-center items-center h-64'>
+                    <p className='text-gray-800 dark:text-gray-400'>No projects found. Create a new project to get started.</p>
+                </div>
+            )}
+
             {projects.map((deployment) => {
                 return (
-                    <div onClick={()=>router.push("/projects/"+deployment.id)} key={deployment.id + "dep"} className='border-1 hover:shadow-md border-gray-600 cursor-pointer rounded-2xl p-4 my-2 dark:bg-neutral-800 dark:hover:bg-neutral-900 animation duration-100'>
+                    <div onClick={() => router.push("/projects/" + deployment.id)} key={deployment.id + "dep"} className='border-1 hover:shadow-md border-gray-600 cursor-pointer rounded-2xl p-4 my-2 dark:bg-neutral-800 dark:hover:bg-neutral-900 animation duration-100'>
                         <h2 className="font-bold">{deployment.name}</h2>
                         <div className='flex justify-between'>
                             <div>
