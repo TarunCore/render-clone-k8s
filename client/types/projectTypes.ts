@@ -8,9 +8,10 @@ export type Projects = {
     project_type: string;
     status: Projectstatus;
     status_message: string;
+    port: string;
     expires_at: string;
     github_url: string;
-    github_branch: string;
+    last_deployed_branch: string;
     deployed_url: string;
     last_build_id: string;
     last_deployed_hash: string;

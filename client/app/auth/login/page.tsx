@@ -34,8 +34,8 @@ const validationSchema = Yup.object().shape({
 
 export default function LoginPage() {
   const [formValues, setFormValues] = React.useState<LoginFormValues>({
-    username: "",
-    password: "",
+    username: "test",
+    password: "test",
     remember: false,
   });
   const [errors, setErrors] = React.useState<LoginFormErrors>({});

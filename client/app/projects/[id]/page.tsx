@@ -33,7 +33,8 @@ const ManageProjectsPage = () => {
         buildCommand: "",
         runCommand: "",
         envVariables: "",
-        projectType: "nodejs"
+        projectType: "nodejs",
+        port: "",
     });
     const [isUpdating, setIsUpdating] = useState(false);
 
@@ -112,7 +113,8 @@ const ManageProjectsPage = () => {
                 buildCommand: deployment.build_commands || "",
                 runCommand: deployment.run_commands || "",
                 envVariables: deployment.env_variables || "",
-                projectType: deployment.project_type || "nodejs"
+                projectType: deployment.project_type || "nodejs",
+                port: deployment.port || "",
             });
         }
     }, [deployment]);
@@ -164,8 +166,8 @@ const ManageProjectsPage = () => {
     }
     const pullAndDeploy = async (e: React.FormEvent) => {
         e.preventDefault();
-        const { installCommand, buildCommand, runCommand, envVariables, projectType } = projectSettings;
-        if (buildCommand === "" && installCommand === "" && runCommand === "" && envVariables === "") {
+        const { installCommand, buildCommand, runCommand, envVariables, projectType, port } = projectSettings;
+        if (buildCommand === "" && installCommand === "" && runCommand === "" && envVariables === "" && port === "") {
             alert("Please update the project settings first");
             return;
         }
@@ -175,7 +177,7 @@ const ManageProjectsPage = () => {
                 github_url: github_url,
                 to_deploy_commit_hash: selectedCommit,
                 branch: selectedBranch, // TODO: add support for other branches
-                project_type: projectType
+                project_type: projectType,
             });
             if (response.status === 200) {
                 console.log("Pull and deploy started");
@@ -194,7 +196,8 @@ const ManageProjectsPage = () => {
                 build_commands: projectSettings.buildCommand,
                 run_commands: projectSettings.runCommand,
                 env_variables: projectSettings.envVariables,
-                project_type: projectSettings.projectType
+                project_type: projectSettings.projectType,
+                port: projectSettings.port
             });
             if (response.status === 200) {
                 setIsSettingsModalOpen(false);
@@ -324,6 +327,13 @@ const ManageProjectsPage = () => {
                                     placeholder="npm start"
                                     name="runCommand"
                                 />
+                                <Input
+                                    label="Port"
+                                    value={projectSettings.port}
+                                    onChange={e => setProjectSettings(prev => ({ ...prev, port: e.target.value }))}
+                                    placeholder="3000"
+                                    name="port"
+                                />
                                 <Textarea
                                     label="Env Variables (as a single string)"
                                     value={projectSettings.envVariables}
@@ -349,7 +359,7 @@ const ManageProjectsPage = () => {
                                     >
                                         <img src="/icons/python.svg" height="48" width="48" alt="Python logo" />
                                     </button>
-                                    
+
                                 </div>
                             </div>
                         </ModalBody>

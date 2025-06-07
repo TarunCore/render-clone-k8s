@@ -74,16 +74,17 @@ function getPodManifest(projectId: string, command: string, projectType: keyof t
 
 buildRouter.post("/create/", jwtMiddleware, asyncHandler(async (req: Request, res: Response) => {
     const canAccess = await hasProjectPermission(req.body.project_id, req.user);
-    if(!canAccess) {
+    if (!canAccess) {
         res.status(401);
         return;
     }
 
-    const { github_url, to_deploy_commit_hash, project_type, project_id } = req.body;
-    if (!github_url || !to_deploy_commit_hash || !project_type || !project_id) {
+    const { github_url, to_deploy_commit_hash, project_type, project_id, branch } = req.body;
+    if (!github_url || !to_deploy_commit_hash || !project_type || !project_id || !branch) {
+        logger.error("Missing required fields for build creation");
         return res.status(400).send({ status: "error", message: "Missing required fields" });
     }
-    
+
     const project = await client.query("SELECT subdomain, build_commands, install_commands, run_commands, env_variables FROM projects WHERE id = $1", [project_id]);
     const command = getCommand(github_url, {
         buildCommand: project.rows[0].build_commands,
@@ -92,7 +93,7 @@ buildRouter.post("/create/", jwtMiddleware, asyncHandler(async (req: Request, re
         envVariables: project.rows[0].env_variables
     });
     const podManifest = getPodManifest(project_id, command, project_type);
-    
+
     try {
         const existingPod = await k8sApi.readNamespacedPod({ namespace: 'default', name: `pod-${project_id}` });
         if (existingPod) {
@@ -121,10 +122,10 @@ buildRouter.post("/create/", jwtMiddleware, asyncHandler(async (req: Request, re
         return res.status(400).send({ status: "error", message: "Ingress update failed" });
     }
 
-    await client.query("UPDATE projects SET status = 'building' WHERE id = $1", [project_id]);
+    await client.query("UPDATE projects SET status = 'building', last_deployed_at = $1 WHERE id = $2", [new Date(), project_id]);
     await client.query(`INSERT INTO builds (status, status_message,build_started_at, 
-        commit_hash, commit_message,project_id)
-      VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`, ["building", "Build started", new Date(), to_deploy_commit_hash, "samsple msg", project_id]);
+        commit_hash, commit_message,project_id, branch)
+      VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`, ["building", "Build started", new Date(), to_deploy_commit_hash, "samsple msg", project_id, branch]);
     res.status(200).send({ status: "success", message: "Build started", data, podManifest });
 
 }));

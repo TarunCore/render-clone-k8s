@@ -23,6 +23,27 @@ export const Logo: React.FC<IconSvgProps> = ({
     />
   </svg>
 );
+export const Logo2: React.FC<IconSvgProps> = ({
+  size = 36,
+  width,
+  height,
+  ...props
+}) => (
+  <svg
+    fill="none"
+    height={size || height}
+    viewBox="0 0 32 32"
+    width={size || width}
+    {...props}
+  >
+    <path
+      d="M16 6L26 22H20L16 15L12 22H6L16 6Z"
+      fill="#2D9CDB"
+    />
+    <rect x="10" y="24" width="12" height="2.5" fill="#1B1F23" rx="1.2" />
+  </svg>
+);
+
 
 export const TwitterIcon: React.FC<IconSvgProps> = ({
   size = 24,

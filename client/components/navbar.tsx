@@ -26,7 +26,6 @@ import {
   Logo,
 } from "@/components/icons";
 import UserNav from "./user-nav";
-import { UserProvider } from "@/context/UserContext";
 
 export const Navbar = () => {
   const searchInput = (
@@ -87,7 +86,7 @@ export const Navbar = () => {
           </Link>
           <ThemeSwitch />
         </NavbarItem>
-        <UserNav/>
+        <UserNav />
       </NavbarContent>
 
       <NavbarContent className="sm:hidden basis-1 pl-4" justify="end">
