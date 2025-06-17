@@ -1,4 +1,4 @@
-# 🚀 sudo deploy - render clone
+# sudo deploy - render clone
 
 A deployment service similar to [render.com](https://render.com), powered by **Kubernetes** and designed for simplicity and scalability.
 
@@ -47,7 +47,7 @@ kubectl apply -f ingress.yml
 
 ---
 
-## 📌 Notes
+## Notes
 
 - The **main backend (`server/`) is not containerized or deployed via Kubernetes** yet.
 - All deployment pods (user services) are managed dynamically using Kubernetes from the backend API.
