@@ -15,6 +15,7 @@ import SettingsIcon from '@/components/icons/SettingsIcon';
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/modal";
 import { Input, Textarea } from "@heroui/input";
 import RefreshIcon from '@/components/icons/RefreshIcon';
+import { convertToProperCase } from '@/utils/commonUtils';
 const convert = new AnsiToHtml();
 // const ws = new WebSocket('ws://localhost:3001/');
 
@@ -40,6 +41,7 @@ const ManageProjectsPage = () => {
 
     async function fetchData() {
         try {
+            api.get('/projects/status/' + params.id)
             const response = await api.get('/projects/' + params.id);
             if (response.status === 200) {
                 setProjects(response.data.data);
@@ -102,11 +104,9 @@ const ManageProjectsPage = () => {
         fetchData();
     }, [])
     const { description, status, last_deployed_hash, last_deployed_at, github_url } = deployment || {};
-    useEffect(() => {
-        fetchCommitsAndBranches();
-    }, [deployment]);
 
     useEffect(() => {
+        fetchCommitsAndBranches();
         if (deployment) {
             setProjectSettings({
                 installCommand: deployment.install_commands || "",
@@ -119,14 +119,6 @@ const ManageProjectsPage = () => {
         }
     }, [deployment]);
 
-    useEffect(() => {
-        //curl -H "Accept: application/vnd.github+json" https://api.github.com/repos/octocat/Spoon-Knife/commits?per_page=5
-        // simulate fake logs for now ; TODO: stream using websockets
-        // const interval = setInterval(() => {
-        //     setLogs((prevLogs) => [`Log ${prevLogs.length + 1}`, ...prevLogs]);
-        // }, 6000);
-        // return () => clearInterval(interval);
-    }, [])
     useEffect(() => {
         if (!params.id) return;
 
@@ -219,12 +211,12 @@ const ManageProjectsPage = () => {
                 <Divider className='my-4' />
                 <div className='flex flex-col gap-1'>
                     <h2 className="text-md">{"Name: " + deployment?.name}</h2>
-                    <p className="dark:text-gray-400 text-sm">{"Projects ID: " + params.id}</p>
+                    <p className="dark:text-gray-400 text-sm">{"Project ID: " + params.id}</p>
                     {description && <p className="dark:text-gray-400 text-sm">{"Description: " + description}</p>}
                     {status && (
                         <>
-                            <p className={status === "pending" ? "text-red-400" : "text-green-500"}>
-                                {status}
+                            <p className={status === "running" ?  "text-green-500": "text-red-600"}>
+                                {convertToProperCase(status)}
                             </p>
                         </>
                     )}

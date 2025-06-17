@@ -6,6 +6,9 @@ on:
 jobs:
   build_and_push:
     runs-on: ubuntu-latest
+    environment: release
+
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -28,6 +31,6 @@ jobs:
         with: 
           context: "{{defaultContext}}:server"
           push: true
-          tags: tarune/render-clone-backend:latest
+          tags: tarune14/render-clone-backend:latest
 
       

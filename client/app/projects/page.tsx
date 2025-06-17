@@ -8,6 +8,7 @@ import { Button } from '@heroui/button';
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/modal";
 import { Input } from "@heroui/input";
 import { Select, SelectItem } from "@heroui/select";
+import { convertToProperCase } from '@/utils/commonUtils';
 
 const projectTypes = [
     { type: "nodejs", label: "Node.js", icon: "nodejs.svg" },
@@ -159,7 +160,9 @@ const ProjectsPage = () => {
                                 <Link className='text-sm' href={deployment.github_url}>{deployment.github_url}</Link>
                             </div>
 
-                            <p className={deployment.status == "pending" ? "text-red-400" : "text-green-500"}>{deployment.status}</p>
+                            <p className={status === "running" ? "text-green-500" : "text-red-600"}>
+                                {convertToProperCase(deployment.status)}
+                            </p>
                         </div>
                     </div>
                 )

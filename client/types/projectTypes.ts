@@ -1,4 +1,4 @@
-export type Projectstatus = "pending"| "building" | "success" | "failed" | "cancelling" | "cancelled";
+export type Projectstatus = "pending"| "running" | "success" | "failed" | "cancelling" | "cancelled";
 
 export type Projects = {
     id: string;

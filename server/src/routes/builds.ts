@@ -122,12 +122,14 @@ buildRouter.post("/create/", jwtMiddleware, asyncHandler(async (req: Request, re
         return res.status(400).send({ status: "error", message: "Ingress update failed" });
     }
 
-    await client.query("UPDATE projects SET status = 'building', last_deployed_at = $1 WHERE id = $2", [new Date(), project_id]);
-    await client.query(`INSERT INTO builds (status, status_message,build_started_at, 
+    const buildData = await client.query(`INSERT INTO builds (status, status_message,build_started_at, 
         commit_hash, commit_message,project_id, branch)
-      VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`, ["building", "Build started", new Date(), to_deploy_commit_hash, "samsple msg", project_id, branch]);
+      VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`, ["running", "Build started", new Date(), to_deploy_commit_hash, "samsple msg", project_id, branch]);
+    if (buildData.rows.length === 0) {
+        return res.status(400).send({ status: "error", message: "DB update failed" });
+    }
+    await client.query("UPDATE projects SET status = 'running', last_deployed_at = $1, last_build_id = $2 WHERE id = $3", [new Date(), buildData.rows[0].id, project_id]);
     res.status(200).send({ status: "success", message: "Build started", data, podManifest });
-
 }));
 buildRouter.post("/create/service/:project_id", asyncHandler(async (req: Request, res: Response) => {
     res.send("Not available");

@@ -26,3 +26,5 @@ EXECUTE FUNCTION update_updated_at_column();
 
 -- 4. Create the index on the username column
 CREATE INDEX idx_users_username ON users (username);
+
+INSERT INTO users (username, password, email) values ('test2', '$2b$10$PeWR6.GjNzeGvlddwTXnLeEtTRHnb3iTq2UDToCnMz0/2.skEzXVS', 'test2@test.com');

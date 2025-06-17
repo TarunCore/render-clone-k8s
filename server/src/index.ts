@@ -3,7 +3,7 @@ import cors from "cors"
 import 'dotenv/config'
 import userRouter from "./routes/user";
 import { client } from "./configs/db";
-import deploymentRouter from "./routes/deployment";
+import projectRouter from "./routes/project";
 import Websocket from "ws";
 import buildRouter from "./routes/builds";
 import { PassThrough } from 'stream'; 
@@ -11,6 +11,7 @@ import { stream } from "./configs/k8s";
 import cookieParser from "cookie-parser";
 import logger from "./logger";
 
+// TODO: Move to separate Logs Watch service 
 const wss = new Websocket.Server({ port: 8080 });
 
 
@@ -31,7 +32,7 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
 });
 app.use(cookieParser());
 app.use("/api/v1/users", userRouter);
-app.use("/api/v1/projects", deploymentRouter);
+app.use("/api/v1/projects", projectRouter);
 app.use("/api/v1/builds/", buildRouter)
 
 app.get("/", (req, res) => {

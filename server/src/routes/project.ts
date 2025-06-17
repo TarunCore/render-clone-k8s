@@ -1,10 +1,11 @@
 import express, { Request, Response } from "express";
 import { asyncHandler } from "../util/common";
 import { createUser, hasProjectPermission, loginUser } from "../services/authServices";
-import { createProject, getProjectById, getProjects, updateProject } from "../services/projectServices";
+import { checkAndUpdatePodStatus, createProject, getProjectById, getProjects, updateProject } from "../services/projectServices";
 import { client } from "../configs/db";
 import { DEP_MANAGER_BASE_URL } from "../config";
 import { jwtMiddleware } from "../middleware/auth";
+import k8sApi from "../configs/k8s";
 
 const router = express.Router();
 
@@ -51,5 +52,18 @@ router.patch("/:id", jwtMiddleware, asyncHandler(async (req: Request, res: Respo
     }
     const data = await updateProject(req.params.id, req.body);
     res.send({status: "success", message: "Project updated successfully", data: data });
+}));
+
+router.get("/status/:id", jwtMiddleware, asyncHandler(async (req: Request, res: Response) => {
+    if(!hasProjectPermission(req.params.id, req.user)) {
+        res.status(403).send({ status: "error", message: "You do not have permission to create a project" });
+        return;
+    }
+    const check = await checkAndUpdatePodStatus(req.params.id);
+    if (check.status === "error") {
+        res.status(404).send(check);
+        return;
+    }
+    res.send(check);    
 }));
 export default router;
