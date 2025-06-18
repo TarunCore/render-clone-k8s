@@ -12,7 +12,6 @@ import { Spinner } from "@heroui/spinner";
 import AnsiToHtml from 'ansi-to-html';
 import EyeIcon from '@/components/icons/EyeIcon';
 import SettingsIcon from '@/components/icons/SettingsIcon';
-import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@heroui/modal";
 import { Input, Textarea } from "@heroui/input";
 import RefreshIcon from '@/components/icons/RefreshIcon';
 import { convertToProperCase } from '@/utils/commonUtils';
@@ -29,7 +28,7 @@ const ManageProjectsPage = () => {
     const [branches, setBranches] = useState<string[]>([]);
     const [selectedCommit, setSelectedCommit] = useState<string>("");
     const [builds, setBuilds] = useState<any[]>([]);
-    const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+    const [activeSection, setActiveSection] = useState<'overview' | 'builds' | 'settings'>('overview');
     const [projectSettings, setProjectSettings] = useState({
         installCommand: "",
         buildCommand: "",
@@ -193,7 +192,7 @@ const ManageProjectsPage = () => {
                 port: projectSettings.port
             });
             if (response.status === 200) {
-                setIsSettingsModalOpen(false);
+                setActiveSection('overview');
                 fetchData();
             }
         } catch (err) {
@@ -205,180 +204,212 @@ const ManageProjectsPage = () => {
     };
 
     return (
+        <div className="flex">
+            {/* Sidebar */}
+            <aside className="w-64 dark:bg-neutral-900 border-r border-neutral-200 dark:border-neutral-700 p-4 flex flex-col gap-4">
+                <h1 className="text-xl font-bold mb-2">Project</h1>
+                <nav className="flex flex-col gap-2">
+                    <button
+                        onClick={() => setActiveSection('overview')}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-md ${activeSection === 'overview' ? 'bg-blue-500 text-white' : 'hover:bg-neutral-200 dark:hover:bg-neutral-800'}`}
+                    >
+                        <EyeIcon /> Overview
+                    </button>
+                    <button
+                        onClick={() => setActiveSection('builds')}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-md ${activeSection === 'builds' ? 'bg-blue-500 text-white' : 'hover:bg-neutral-200 dark:hover:bg-neutral-800'}`}
+                    >
+                        <PullIcon /> Builds
+                    </button>
+                    <button
+                        onClick={() => setActiveSection('settings')}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-md ${activeSection === 'settings' ? 'bg-blue-500 text-white' : 'hover:bg-neutral-200 dark:hover:bg-neutral-800'}`}
+                    >
+                        <SettingsIcon /> Settings
+                    </button>
+                </nav>
+            </aside>
 
-        <div className='flex'>
-            <div className=' w-[30%]'>
-                <h1 className="text-2xl font-bold">Builds</h1>
-                <Divider className='my-4' />
-                <div className='flex flex-col gap-1'>
-                    {/* <h2 className="text-md">{"Name: " + deployment?.name}</h2>
-                    <p className="dark:text-gray-400 text-sm">{"Project ID: " + params.id}</p>
-                    {description && <p className="dark:text-gray-400 text-sm">{"Description: " + description}</p>}
-                    
-                    <p className="dark:text-gray-400 text-sm">
-                        Last Deployed: {last_deployed_hash || "N/A"}
-                    </p>
-                    <p className="dark:text-gray-400 text-sm">
-                        Last Deployed Time: {last_deployed_at ? new Date(last_deployed_at).toDateString() : "N/A"}
-                    </p>
-                    <Divider className='my-4' />
-                    <h1 className="text-xl font-bold">{"Builds " + (builds.length == 0 ? "" : `(${builds.length})`)}</h1> */}
-                    {/* hide scroll bar */}
-                    <div className='flex flex-col gap-2 overflow-y-auto max-h-[40vh] scrollbar-hide'>
-                        {builds.length === 0 && <p className="text-gray-400 text-sm">No builds found</p>}
-                        {builds.map((build) => {
-                            return <div className='flex flex-col gap-1 border-blue-300 border-2 p-2 rounded-md' key={build.id}>
-                                <p className="dark:text-gray-300 text-sm">{"Build ID: " + build.id}</p>
-                                <p className="dark:text-gray-400 text-sm">{"Commit Hash: " + build.commit_hash}</p>
-                                <p className="dark:text-gray-400 text-sm">{"Commit Message: " + build.commit_message}</p>
-                                <p className="dark:text-gray-400 text-sm">{"Build Started At: " + new Date(build.build_started_at).toLocaleTimeString() + " " + new Date(build.build_started_at).toLocaleDateString()}</p>
-                                <p className="dark:text-gray-400 text-sm">{"Status: " + build.status}</p>
-                                <p className="dark:text-gray-400 text-sm">{"Status Message: " + build.status_message}</p>
-                            </div>
-                        })
-                        }
-                    </div>
-                </div>
-            </div>
-            {/* Manage Project section */}
-            <div className='w-[70%] flex flex-col gap-4'>
-                <div className='flex justify-between'>
-                    <h2 className="text-2xl font-bold">{"Manage Project - " + deployment?.name}</h2>
-                    <div>
-                        <Button isIconOnly aria-label="Open project settings" color="default" variant="faded" onClick={() => setIsSettingsModalOpen(true)}>
-                            <SettingsIcon />
-                        </Button>
-                    </div>
-                </div>
-                {/* <Divider className='my-4' /> */}
-                <Link className='text-sm' target='_blank' href={github_url} >{github_url}</Link>
+            {/* Main content */}
+            <main className="flex-1 p-6 overflow-y-auto">
+                {activeSection === 'overview' && (
+                    <section className="flex flex-col gap-6">
+                        <div className="flex justify-between items-center">
+                            <h2 className="text-2xl font-bold">{`Manage Project - ${deployment?.name ?? ''}`}</h2>
+                        </div>
 
-                <form className="flex flex-wrap gap-2 justify-between">
-                    <Select className="max-w-xs" label="Select Branch" isRequired selectedKeys={selectedBranch ? [selectedBranch] : []} onChange={(e) => { setSelectedBranch(e.target.value) }}>
-                        {branches.map((branch) => (
-                            <SelectItem key={branch}>{branch}</SelectItem>
-                        ))}
-                    </Select>
-                    <Select className="max-w-xs" label="Select Commit" isRequired selectedKeys={selectedCommit ? [selectedCommit] : []} onChange={(e) => { setSelectedCommit(e.target.value) }}>
-                        {commits.map((commit) => (
-                            <SelectItem key={commit}>{commit}</SelectItem>
-                        ))}
-                    </Select>
-                    <div className="mt-4">
-                        <Button type='submit' variant='flat' color='success' startContent={PullIcon()} onClick={pullAndDeploy}>Pull and Deploy</Button>
-                    </div>
-                </form>
-                <div className='flex flex-col gap-1'>
-                    <div className='flex gap-4 items-center justify-between'>
+                        <Link className="text-sm" target="_blank" href={github_url}>{github_url}</Link>
 
-                        {status && (
-                            <div className="flex items-center gap-2">
-                                <span className="text-sm dark:text-gray-400">Status:</span>
-                                <span
-                                    className={`text-white text-xs font-semibold px-2 py-1 rounded-full ${status === "running" ? "bg-green-500" : "bg-red-600"
-                                        }`}
-                                >
-                                    {convertToProperCase(status)}
-                                </span>
-                            </div>
-                        )}
+                        <form className="flex flex-wrap gap-4 items-end" onSubmit={pullAndDeploy}>
+                            <Select
+                                className="max-w-xs"
+                                label="Select Branch"
+                                isRequired
+                                selectedKeys={selectedBranch ? [selectedBranch] : []}
+                                onChange={(e) => setSelectedBranch(e.target.value)}
+                            >
+                                {branches.map((branch) => (
+                                    <SelectItem key={branch}>{branch}</SelectItem>
+                                ))}
+                            </Select>
+                            <Select
+                                className="max-w-xs"
+                                label="Select Commit"
+                                isRequired
+                                selectedKeys={selectedCommit ? [selectedCommit] : []}
+                                onChange={(e) => setSelectedCommit(e.target.value)}
+                            >
+                                {commits.map((commit) => (
+                                    <SelectItem key={commit}>{commit}</SelectItem>
+                                ))}
+                            </Select>
 
-                        <p className="dark:text-gray-400 text-sm">
-                            Last Deployment: {last_deployed_at ? new Date(last_deployed_at).toDateString() : "N/A"}
-                        </p>
-                    </div>
-                    <Link className='text-sm' target='_blank' href={"http://" + deployment?.subdomain + HOST_URL}>{deployment?.subdomain + HOST_URL}</Link>
-                </div>
-                <div className=''>
-                    <div className='flex items-center gap-2 mt-4'>
-                        <h2 className="text-2xl font-bold">Logs</h2>
-                        <Button isIconOnly aria-label="Watch" color="warning" variant="faded" onClick={watchLogs}>
-                            <RefreshIcon />
-                        </Button>
-                    </div>
-                    <Divider className='my-4' />
-                    <div className=' p-4 rounded-md max-h-[42vh] overflow-y-auto  bg-neutral-100 dark:bg-neutral-800 font-mono text-sm whitespace-pre-wrap'>
-                        {logs.map((log, index) => {
-                            return (
-                                // <div key={index + "logg"} dangerouslySetInnerHTML={{ __html: log }} />
-                                <p key={index} className='text-md dark:text-gray-100'>{log}</p>
-                            )
-                        })}
-                        <Spinner />
+                            <Button
+                                type="submit"
+                                variant="flat"
+                                color="success"
+                                startContent={<PullIcon />}
+                            >
+                                Pull & Deploy
+                            </Button>
+                        </form>
 
-                    </div>
-                </div>
-            </div>
-            <Modal isOpen={isSettingsModalOpen} onOpenChange={setIsSettingsModalOpen} placement="center">
-                <ModalContent>
-                    <ModalHeader className="flex flex-col gap-1">Project Settings</ModalHeader>
-                    <form onSubmit={handleUpdateSettings}>
-                        <ModalBody>
-                            <div className="flex flex-col gap-4">
-                                <Input
-                                    label="Install Command"
-                                    value={projectSettings.installCommand}
-                                    onChange={e => setProjectSettings(prev => ({ ...prev, installCommand: e.target.value }))}
-                                    placeholder="npm install"
-                                    name="installCommand"
-                                />
-                                <Input
-                                    label="Build Command"
-                                    value={projectSettings.buildCommand}
-                                    onChange={e => setProjectSettings(prev => ({ ...prev, buildCommand: e.target.value }))}
-                                    placeholder="npm run build"
-                                    name="buildCommand"
-                                />
-                                <Input
-                                    label="Run Command"
-                                    value={projectSettings.runCommand}
-                                    onChange={e => setProjectSettings(prev => ({ ...prev, runCommand: e.target.value }))}
-                                    placeholder="npm start"
-                                    name="runCommand"
-                                />
-                                <Input
-                                    label="Port"
-                                    value={projectSettings.port}
-                                    onChange={e => setProjectSettings(prev => ({ ...prev, port: e.target.value }))}
-                                    placeholder="3000"
-                                    name="port"
-                                />
-                                <Textarea
-                                    label="Env Variables (as a single string)"
-                                    value={projectSettings.envVariables}
-                                    onChange={e => setProjectSettings(prev => ({ ...prev, envVariables: e.target.value }))}
-                                    placeholder={`KEY1=VALUE1\nKEY2=VALUE2`}
-                                    name="envVariables"
-                                />
-                                {/* Project Type selection as clickable icons */}
-                                <div className="flex gap-4 items-center mt-2">
-                                    <button
-                                        type="button"
-                                        onClick={() => setProjectSettings(prev => ({ ...prev, projectType: 'nodejs' }))}
-                                        className={`border-2 rounded-lg p-1 ${projectSettings.projectType === 'nodejs' ? 'border-blue-500' : 'border-transparent'}`}
-                                        aria-label="Node.js"
+                        <div className="flex flex-col gap-2">
+                            {status && (
+                                <div className="flex items-center gap-2">
+                                    <span className="text-sm dark:text-gray-400">Status:</span>
+                                    <span
+                                        className={`text-white text-xs font-semibold px-2 py-1 rounded-full ${status === 'running' ? 'bg-green-500' : 'bg-red-600'}`}
                                     >
-                                        <img src="/icons/nodejs.svg" height="48" width="48" alt="Node.js logo" />
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setProjectSettings(prev => ({ ...prev, projectType: 'python' }))}
-                                        className={`border-2 rounded-lg p-1 ${projectSettings.projectType === 'python' ? 'border-blue-500' : 'border-transparent'}`}
-                                        aria-label="Python"
-                                    >
-                                        <img src="/icons/python.svg" height="48" width="48" alt="Python logo" />
-                                    </button>
-
+                                        {convertToProperCase(status)}
+                                    </span>
                                 </div>
+                            )}
+                            <p className="dark:text-gray-400 text-sm">
+                                Last Deployment: {last_deployed_at ? new Date(last_deployed_at).toDateString() : 'N/A'}
+                            </p>
+                            <Link className="text-sm" target="_blank" href={`http://${deployment?.subdomain}${HOST_URL}`}>
+                                {`${deployment?.subdomain}${HOST_URL}`}
+                            </Link>
+                        </div>
+
+                        {/* Logs */}
+                        <div className="">
+                            <div className="flex items-center gap-2 mb-2">
+                                <h2 className="text-2xl font-bold">Logs</h2>
+                                <Button isIconOnly aria-label="Watch" color="warning" variant="faded" onClick={watchLogs}>
+                                    <RefreshIcon />
+                                </Button>
                             </div>
-                        </ModalBody>
-                        <ModalFooter>
-                            <Button variant="light" onClick={() => setIsSettingsModalOpen(false)} type="button">Cancel</Button>
-                            <Button color="primary" type="submit" isLoading={isUpdating} disabled={isUpdating}>Update</Button>
-                        </ModalFooter>
-                    </form>
-                </ModalContent>
-            </Modal>
+                            <Divider className="my-4" />
+                            <div className="p-4 rounded-md max-h-[60vh] overflow-y-auto bg-neutral-100 dark:bg-neutral-800 font-mono text-sm whitespace-pre-wrap">
+                                {logs.map((log, index) => (
+                                    <p key={index} className="text-md dark:text-gray-100">
+                                        {log}
+                                    </p>
+                                ))}
+                                <Spinner />
+                            </div>
+                        </div>
+                    </section>
+                )}
+
+                {activeSection === 'builds' && (
+                    <section className="flex flex-col gap-4">
+                        <h2 className="text-2xl font-bold">{`Builds ${builds.length ? `(${builds.length})` : ''}`}</h2>
+                        <Divider />
+                        <div className="flex flex-col gap-3 overflow-y-auto max-h-[70vh] scrollbar-hide">
+                            {builds.length === 0 && <p className="text-gray-400 text-sm">No builds found</p>}
+                            {builds.map((build) => (
+                                <div
+                                    key={build.id}
+                                    className="flex flex-col gap-1 border border-blue-300 p-3 rounded-md"
+                                >
+                                    <p className="dark:text-gray-300 text-sm">Build ID: {build.id}</p>
+                                    <p className="dark:text-gray-400 text-sm">Commit Hash: {build.commit_hash}</p>
+                                    <p className="dark:text-gray-400 text-sm">Commit Message: {build.commit_message}</p>
+                                    <p className="dark:text-gray-400 text-sm">
+                                        Build Started At:{' '}
+                                        {new Date(build.build_started_at).toLocaleTimeString()} {' '}
+                                        {new Date(build.build_started_at).toLocaleDateString()}
+                                    </p>
+                                    <p className="dark:text-gray-400 text-sm">Status: {build.status}</p>
+                                    <p className="dark:text-gray-400 text-sm">Status Message: {build.status_message}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+                )}
+
+                {activeSection === 'settings' && (
+                    <section className="flex flex-col gap-6 max-w-2xl">
+                        <h2 className="text-2xl font-bold">Project Settings</h2>
+                        <form onSubmit={handleUpdateSettings} className="flex flex-col gap-4">
+                            <Input
+                                label="Install Command"
+                                value={projectSettings.installCommand}
+                                onChange={(e) => setProjectSettings((prev) => ({ ...prev, installCommand: e.target.value }))}
+                                placeholder="npm install"
+                                name="installCommand"
+                            />
+                            <Input
+                                label="Build Command"
+                                value={projectSettings.buildCommand}
+                                onChange={(e) => setProjectSettings((prev) => ({ ...prev, buildCommand: e.target.value }))}
+                                placeholder="npm run build"
+                                name="buildCommand"
+                            />
+                            <Input
+                                label="Run Command"
+                                value={projectSettings.runCommand}
+                                onChange={(e) => setProjectSettings((prev) => ({ ...prev, runCommand: e.target.value }))}
+                                placeholder="npm start"
+                                name="runCommand"
+                            />
+                            <Input
+                                label="Port"
+                                value={projectSettings.port}
+                                onChange={(e) => setProjectSettings((prev) => ({ ...prev, port: e.target.value }))}
+                                placeholder="3000"
+                                name="port"
+                            />
+                            <Textarea
+                                label="Env Variables (as a single string)"
+                                value={projectSettings.envVariables}
+                                onChange={(e) => setProjectSettings((prev) => ({ ...prev, envVariables: e.target.value }))}
+                                placeholder={`KEY1=VALUE1\nKEY2=VALUE2`}
+                                name="envVariables"
+                            />
+                            {/* Project Type selection */}
+                            <div className="flex gap-4 items-center mt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setProjectSettings((prev) => ({ ...prev, projectType: 'nodejs' }))}
+                                    className={`border-2 rounded-lg p-1 ${projectSettings.projectType === 'nodejs' ? 'border-blue-500' : 'border-transparent'}`}
+                                    aria-label="Node.js"
+                                >
+                                    <img src="/icons/nodejs.svg" height="48" width="48" alt="Node.js logo" />
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setProjectSettings((prev) => ({ ...prev, projectType: 'python' }))}
+                                    className={`border-2 rounded-lg p-1 ${projectSettings.projectType === 'python' ? 'border-blue-500' : 'border-transparent'}`}
+                                    aria-label="Python"
+                                >
+                                    <img src="/icons/python.svg" height="48" width="48" alt="Python logo" />
+                                </button>
+                            </div>
+
+                            <div className="flex gap-4">
+                                <Button variant="light" type="button" onClick={() => setActiveSection('overview')}>Cancel</Button>
+                                <Button color="primary" type="submit" isLoading={isUpdating} disabled={isUpdating}>
+                                    Update
+                                </Button>
+                            </div>
+                        </form>
+                    </section>
+                )}
+            </main>
         </div>
     )
 }
