@@ -6,6 +6,7 @@ export type Projects = {
     description: string;
     deployed_by: string;
     project_type: string;
+    subdomain: string;
     status: Projectstatus;
     status_message: string;
     port: string;

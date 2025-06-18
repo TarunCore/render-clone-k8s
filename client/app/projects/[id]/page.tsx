@@ -16,6 +16,7 @@ import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@herou
 import { Input, Textarea } from "@heroui/input";
 import RefreshIcon from '@/components/icons/RefreshIcon';
 import { convertToProperCase } from '@/utils/commonUtils';
+import { HOST_URL } from '@/config/constants';
 const convert = new AnsiToHtml();
 // const ws = new WebSocket('ws://localhost:3001/');
 
@@ -207,19 +208,13 @@ const ManageProjectsPage = () => {
 
         <div className='flex'>
             <div className=' w-[30%]'>
-                <h1 className="text-2xl font-bold">Status</h1>
+                <h1 className="text-2xl font-bold">Builds</h1>
                 <Divider className='my-4' />
                 <div className='flex flex-col gap-1'>
-                    <h2 className="text-md">{"Name: " + deployment?.name}</h2>
+                    {/* <h2 className="text-md">{"Name: " + deployment?.name}</h2>
                     <p className="dark:text-gray-400 text-sm">{"Project ID: " + params.id}</p>
                     {description && <p className="dark:text-gray-400 text-sm">{"Description: " + description}</p>}
-                    {status && (
-                        <>
-                            <p className={status === "running" ?  "text-green-500": "text-red-600"}>
-                                {convertToProperCase(status)}
-                            </p>
-                        </>
-                    )}
+                    
                     <p className="dark:text-gray-400 text-sm">
                         Last Deployed: {last_deployed_hash || "N/A"}
                     </p>
@@ -227,7 +222,7 @@ const ManageProjectsPage = () => {
                         Last Deployed Time: {last_deployed_at ? new Date(last_deployed_at).toDateString() : "N/A"}
                     </p>
                     <Divider className='my-4' />
-                    <h1 className="text-xl font-bold">{"Builds " + (builds.length == 0 ? "" : `(${builds.length})`)}</h1>
+                    <h1 className="text-xl font-bold">{"Builds " + (builds.length == 0 ? "" : `(${builds.length})`)}</h1> */}
                     {/* hide scroll bar */}
                     <div className='flex flex-col gap-2 overflow-y-auto max-h-[40vh] scrollbar-hide'>
                         {builds.length === 0 && <p className="text-gray-400 text-sm">No builds found</p>}
@@ -246,9 +241,9 @@ const ManageProjectsPage = () => {
                 </div>
             </div>
             {/* Manage Project section */}
-            <div className='w-[70%]'>
+            <div className='w-[70%] flex flex-col gap-4'>
                 <div className='flex justify-between'>
-                    <h2 className="text-2xl font-bold">{"Manage Project"}</h2>
+                    <h2 className="text-2xl font-bold">{"Manage Project - " + deployment?.name}</h2>
                     <div>
                         <Button isIconOnly aria-label="Open project settings" color="default" variant="faded" onClick={() => setIsSettingsModalOpen(true)}>
                             <SettingsIcon />
@@ -256,8 +251,9 @@ const ManageProjectsPage = () => {
                     </div>
                 </div>
                 {/* <Divider className='my-4' /> */}
-                <Link className='text-sm' target='_blank' href={github_url}>{github_url}</Link>
-                <form className="mt-4 flex flex-wrap gap-2">
+                <Link className='text-sm' target='_blank' href={github_url} >{github_url}</Link>
+
+                <form className="flex flex-wrap gap-2 justify-between">
                     <Select className="max-w-xs" label="Select Branch" isRequired selectedKeys={selectedBranch ? [selectedBranch] : []} onChange={(e) => { setSelectedBranch(e.target.value) }}>
                         {branches.map((branch) => (
                             <SelectItem key={branch}>{branch}</SelectItem>
@@ -272,15 +268,36 @@ const ManageProjectsPage = () => {
                         <Button type='submit' variant='flat' color='success' startContent={PullIcon()} onClick={pullAndDeploy}>Pull and Deploy</Button>
                     </div>
                 </form>
+                <div className='flex flex-col gap-1'>
+                    <div className='flex gap-4 items-center justify-between'>
+
+                        {status && (
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm dark:text-gray-400">Status:</span>
+                                <span
+                                    className={`text-white text-xs font-semibold px-2 py-1 rounded-full ${status === "running" ? "bg-green-500" : "bg-red-600"
+                                        }`}
+                                >
+                                    {convertToProperCase(status)}
+                                </span>
+                            </div>
+                        )}
+
+                        <p className="dark:text-gray-400 text-sm">
+                            Last Deployment: {last_deployed_at ? new Date(last_deployed_at).toDateString() : "N/A"}
+                        </p>
+                    </div>
+                    <Link className='text-sm' target='_blank' href={"http://" + deployment?.subdomain + HOST_URL}>{deployment?.subdomain + HOST_URL}</Link>
+                </div>
                 <div className=''>
-                    <div className='flex items-center gap-2 mt-8'>
+                    <div className='flex items-center gap-2 mt-4'>
                         <h2 className="text-2xl font-bold">Logs</h2>
                         <Button isIconOnly aria-label="Watch" color="warning" variant="faded" onClick={watchLogs}>
                             <RefreshIcon />
                         </Button>
                     </div>
                     <Divider className='my-4' />
-                    <div className=' p-4 rounded-md max-h-[42vh] overflow-y-auto'>
+                    <div className=' p-4 rounded-md max-h-[42vh] overflow-y-auto  bg-neutral-100 dark:bg-neutral-800 font-mono text-sm whitespace-pre-wrap'>
                         {logs.map((log, index) => {
                             return (
                                 // <div key={index + "logg"} dangerouslySetInnerHTML={{ __html: log }} />
