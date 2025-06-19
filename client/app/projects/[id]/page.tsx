@@ -204,7 +204,7 @@ const ManageProjectsPage = () => {
     };
 
     return (
-        <div className="flex">
+        <div className="flex h-[calc(100vh-100px)]">
             {/* Sidebar */}
             <aside className="w-64 dark:bg-neutral-900 border-r border-neutral-200 dark:border-neutral-700 p-4 flex flex-col gap-4">
                 <h1 className="text-xl font-bold mb-2">Project</h1>
@@ -231,14 +231,13 @@ const ManageProjectsPage = () => {
             </aside>
 
             {/* Main content */}
-            <main className="flex-1 p-6 overflow-y-auto">
+            <main className="flex-1 p-6 overflow-y-auto no-scrollbar">
                 {activeSection === 'overview' && (
                     <section className="flex flex-col gap-6">
                         <div className="flex justify-between items-center">
                             <h2 className="text-2xl font-bold">{`Manage Project - ${deployment?.name ?? ''}`}</h2>
                         </div>
 
-                        <Link className="text-sm" target="_blank" href={github_url}>{github_url}</Link>
 
                         <form className="flex flex-wrap gap-4 items-end" onSubmit={pullAndDeploy}>
                             <Select
@@ -275,6 +274,7 @@ const ManageProjectsPage = () => {
                         </form>
 
                         <div className="flex flex-col gap-2">
+                            <Link className="text-sm" target="_blank" href={github_url}>{github_url}</Link>
                             {status && (
                                 <div className="flex items-center gap-2">
                                     <span className="text-sm dark:text-gray-400">Status:</span>

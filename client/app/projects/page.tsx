@@ -63,7 +63,8 @@ const ProjectsPage = () => {
 
     return (
         // <div className='flex'>
-        <div>
+        // Originaly Layout had pt-16 and max-w-7xl mx-auto
+        <div className='max-w-7xl pt-12 mx-auto'>
             <div className='flex justify-between items-center'>
                 <h1 className="text-2xl font-bold">Projects</h1>
                 <Button variant='solid' color='primary' onPress={() => setIsModalOpen(true)}>Create</Button>
