@@ -159,7 +159,7 @@ export default function SignupPage() {
           />
 
           <div className="flex items-center justify-between w-full">
-            <p className="text-sm dark:text-white">Already have an account?</p>
+            <p className="text-sm dark:text-white">{"Already have an account?"}</p>
             <Link href="/auth/login" className="text-sm text-primary-600 hover:underline">
               Sign in
             </Link>

@@ -144,7 +144,7 @@ export default function LoginPage() {
           />
 
           <div className="flex items-center justify-between w-full">
-            <p className="text-sm dark:text-white">Don't have an account?</p>
+            <p className="text-sm dark:text-white">{"Don't have an account?"}</p>
             <Link href="/auth/signup" className="text-sm dark:text-primary-600 hover:underline">
               Create an account
             </Link>

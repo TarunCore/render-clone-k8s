@@ -16,6 +16,7 @@ import { Input, Textarea } from "@heroui/input";
 import RefreshIcon from '@/components/icons/RefreshIcon';
 import { convertToProperCase } from '@/utils/commonUtils';
 import { HOST_URL } from '@/config/constants';
+import GithubRepo from './_components/GithubRepo';
 const convert = new AnsiToHtml();
 // const ws = new WebSocket('ws://localhost:3001/');
 
@@ -204,9 +205,9 @@ const ManageProjectsPage = () => {
     };
 
     return (
-        <div className="flex h-[calc(100vh-100px)]">
+        <div className="flex h-[calc(100vh-4.5rem)]">
             {/* Sidebar */}
-            <aside className="w-64 dark:bg-neutral-900 border-r border-neutral-200 dark:border-neutral-700 p-4 flex flex-col gap-4">
+            <aside className="w-64 border-r border-neutral-200 dark:border-neutral-700 p-4 flex flex-col gap-4">
                 <h1 className="text-xl font-bold mb-2">Project</h1>
                 <nav className="flex flex-col gap-2">
                     <button
@@ -265,16 +266,16 @@ const ManageProjectsPage = () => {
 
                             <Button
                                 type="submit"
-                                variant="flat"
-                                color="success"
+                                variant="solid"
+                                color="primary"
                                 startContent={<PullIcon />}
                             >
-                                Pull & Deploy
+                                Deploy
                             </Button>
                         </form>
 
                         <div className="flex flex-col gap-2">
-                            <Link className="text-sm" target="_blank" href={github_url}>{github_url}</Link>
+                            <GithubRepo url={github_url} />
                             {status && (
                                 <div className="flex items-center gap-2">
                                     <span className="text-sm dark:text-gray-400">Status:</span>
@@ -285,21 +286,21 @@ const ManageProjectsPage = () => {
                                     </span>
                                 </div>
                             )}
+                            <Link className="text-sm inline-flex items-center gap-1" target="_blank" href={`http://${deployment?.subdomain}${HOST_URL}`}>
+                                {`${deployment?.subdomain}${HOST_URL}`}
+                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M3.5 3C3.22386 3 3 2.77614 3 2.5C3 2.22386 3.22386 2 3.5 2H9.5C9.77614 2 10 2.22386 10 2.5V8.5C10 8.77614 9.77614 9 9.5 9C9.22386 9 9 8.77614 9 8.5V3.70711L2.85355 9.85355C2.65829 10.0488 2.34171 10.0488 2.14645 9.85355C1.95118 9.65829 1.95118 9.34171 2.14645 9.14645L8.29289 3H3.5Z" fill="currentColor"/>
+                                </svg>
+                            </Link>
                             <p className="dark:text-gray-400 text-sm">
                                 Last Deployment: {last_deployed_at ? new Date(last_deployed_at).toDateString() : 'N/A'}
                             </p>
-                            <Link className="text-sm" target="_blank" href={`http://${deployment?.subdomain}${HOST_URL}`}>
-                                {`${deployment?.subdomain}${HOST_URL}`}
-                            </Link>
                         </div>
 
                         {/* Logs */}
                         <div className="">
                             <div className="flex items-center gap-2 mb-2">
                                 <h2 className="text-2xl font-bold">Logs</h2>
-                                <Button isIconOnly aria-label="Watch" color="warning" variant="faded" onClick={watchLogs}>
-                                    <RefreshIcon />
-                                </Button>
                             </div>
                             <Divider className="my-4" />
                             <div className="p-4 rounded-md max-h-[60vh] overflow-y-auto bg-neutral-100 dark:bg-neutral-800 font-mono text-sm whitespace-pre-wrap">
