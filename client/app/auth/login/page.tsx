@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import * as React from "react";
 import { Form } from "@heroui/form";
@@ -11,6 +11,11 @@ import Link from "next/link";
 import api from "@/components/axios";
 import { useRouter } from "next/navigation";
 import { addToast } from "@heroui/toast";
+import { FRONTEND_URL } from "@/config/constants";
+import dotenv from "dotenv";
+import Image from "next/image";
+
+dotenv.config();
 
 interface LoginFormValues {
   username: string;
@@ -28,7 +33,7 @@ const validationSchema = Yup.object().shape({
     .notOneOf(["admin"], "Nice try! Choose a different username"),
   password: Yup.string()
     .required("Please enter your password")
-    .min(4, "Password must be 4 characters or more")
+    .min(4, "Password must be 4 characters or more"),
   // terms: Yup.string().oneOf(["true"], "Please accept the terms"),
 });
 
@@ -42,7 +47,10 @@ export default function LoginPage() {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [showPassword, setShowPassword] = React.useState(false);
   const router = useRouter();
-  const handleInputChange = (name: keyof LoginFormValues, value: string | boolean) => {
+  const handleInputChange = (
+    name: keyof LoginFormValues,
+    value: string | boolean
+  ) => {
     setFormValues((prev) => ({ ...prev, [name]: value }));
   };
 
@@ -59,17 +67,18 @@ export default function LoginPage() {
       if (validationError.inner) {
         validationError.inner.forEach((err: any) => {
           if (err.path) {
-            formattedErrors[err.path as keyof LoginFormErrors] = err.message || "";
+            formattedErrors[err.path as keyof LoginFormErrors] =
+              err.message || "";
           }
         });
       }
       setErrors(formattedErrors);
     }
     try {
-      const response = await api.post('/users/login', {
+      const response = await api.post("/users/login", {
         username: formValues.username,
         email: formValues.username,
-        password: formValues.password
+        password: formValues.password,
       });
       if (response.status === 200) {
         window.location.href = "/projects";
@@ -91,8 +100,22 @@ export default function LoginPage() {
     setErrors({});
   };
 
-  return (
+  const handleGithubLogin = async () => {
+    const clientID = process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID;
+    if (!clientID) {
+      addToast({
+        title: "Login failed",
+        description: "GitHub client ID is not set",
+        variant: "flat",
+        color: "danger",
+      });
+      return;
+    }
+    const redirectURI = `${FRONTEND_URL}/auth/github/callback`;
+    window.location.href = `https://github.com/login/oauth/authorize?client_id=${clientID}&redirect_uri=${redirectURI}&scope=user:email`;
+  };
 
+  return (
     <div className="flex items-center justify-center px-4 sm:px-6 lg:px-8">
       <div className="w-full max-w-md space-y-8 p-8 rounded-lg shadow-md dark:bg-neutral-900">
         <div>
@@ -144,8 +167,13 @@ export default function LoginPage() {
           />
 
           <div className="flex items-center justify-between w-full">
-            <p className="text-sm dark:text-white">{"Don't have an account?"}</p>
-            <Link href="/auth/signup" className="text-sm dark:text-primary-600 hover:underline">
+            <p className="text-sm dark:text-white">
+              {"Don't have an account?"}
+            </p>
+            <Link
+              href="/auth/signup"
+              className="text-sm dark:text-primary-600 hover:underline"
+            >
               Create an account
             </Link>
           </div>
@@ -159,8 +187,21 @@ export default function LoginPage() {
           >
             Sign in
           </Button>
+          <Button
+            className="w-full bg-[#24292e] hover:bg-[#1a1e22] text-white border-0 flex items-center justify-center gap-3 py-6 transition-colors duration-200"
+            type="button"
+            onPress={handleGithubLogin}
+          >
+            <Image
+              src="/icons/github.svg"
+              alt="GitHub"
+              width={20}
+              height={20}
+              className="invert"
+            />
+            <span className="font-medium">Login/Signup with GitHub</span>
+          </Button>
         </Form>
-
       </div>
     </div>
   );

@@ -3,21 +3,17 @@
 A deployment service similar to [render.com](https://render.com), powered by **Kubernetes** and designed for simplicity and scalability.
 
 ---
-
-## Project Structure
-
-```
-.
-├── client/
-└── server/        
-```
-
 - The backend handles the deployment logic and interacts with Kubernetes to spin up pods for different user services.
 ---
 
-## ☸️ Kubernetes Setup (Azure AKS)
+![image](https://github.com/user-attachments/assets/f6acb6f0-b29d-4ab8-8b8c-ed6ea50baff5)
+
+## Kubernetes Setup (Azure AKS)
 
 Kubernetes is **only used** for deploying user services (not the main backend).
+- Use `Azure CNI Node Subnet` as Network Configuration
+- After cluster is created:
+  - Settings -> Networking -> Virutal Network Integration -> Enable Ingress controller 
 
 ### 1. Ingress Setup
 

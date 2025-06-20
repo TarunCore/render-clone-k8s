@@ -1,8 +1,14 @@
 import express, { Request, Response } from "express";
 import { asyncHandler } from "../util/common";
-import { createUser, loginUser } from "../services/authServices";
+import { createUser, loginUser, LoginWithGithub } from "../services/authServices";
 import { client } from "../configs/db";
 import { jwtMiddleware } from "../middleware/auth";
+import dotenv from "dotenv";
+
+dotenv.config();
+
+const CLIENT_ID = process.env.GITHUB_CLIENT_ID;
+const CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET;
 
 const userRouter = express.Router();
 
@@ -12,8 +18,41 @@ userRouter.get("/me", jwtMiddleware, asyncHandler(async (req: Request, res: Resp
 
 
 userRouter.post("/login", asyncHandler(async (req: Request, res: Response) => {
-    const {email, username, password} = req.body;
-    const data = await loginUser(email, username, password);
+    const {email, username, password, mode, code} = req.body;
+    let data;
+    if (mode === "github") {
+        // Handle GitHub login
+        const tokenResponse = await fetch('https://github.com/login/oauth/access_token', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+            },
+            body: JSON.stringify({
+                client_id: CLIENT_ID,
+                client_secret: CLIENT_SECRET,
+                code,
+            }),
+        });
+    
+        const tokenData = await tokenResponse.json();
+        const accessToken = tokenData.access_token;
+    
+        if (accessToken) {
+            data = await LoginWithGithub(accessToken);
+            if(!data.success) {
+                return res.status(400).json({
+                    message: data.message,
+                });
+            }
+        }else{
+            return res.status(400).json({
+                message: "No access token found",
+            });
+        }
+    }else{
+        data = await loginUser(email, username, password);
+    }
     if(!data.success) {
         return res.status(400).json({
             message: data.message,

@@ -23,7 +23,7 @@ const convert = new AnsiToHtml();
 const ManageProjectsPage = () => {
     const params = useParams<{ id: string }>()
     const [selectedBranch, setSelectedBranch] = useState("");
-    const [deployment, setProjects] = useState<Projects | null>(null);
+    const [deployment, setProject] = useState<Projects | null>(null);
     const [logs, setLogs] = useState<string[]>([]);
     const [commits, setCommits] = useState<string[]>([]);
     const [branches, setBranches] = useState<string[]>([]);
@@ -42,10 +42,19 @@ const ManageProjectsPage = () => {
 
     async function fetchData() {
         try {
-            api.get('/projects/status/' + params.id)
+            api.get('/projects/status/' + params.id).then((res) => {
+                if (res.status === 200) {
+                    // const { podStatus } = res.data.data;
+                    // if (deployment) {
+                    //     setProject({...deployment, status: podStatus});
+                    // }
+                }
+            }).catch((err) => {
+                console.log(err);
+            });
             const response = await api.get('/projects/' + params.id);
             if (response.status === 200) {
-                setProjects(response.data.data);
+                setProject(response.data.data);
             }
             const buildsResponse = await api.get('/projects/' + params.id + '/builds');
             if (buildsResponse.status === 200) {

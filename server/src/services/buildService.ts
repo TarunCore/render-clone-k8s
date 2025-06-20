@@ -43,7 +43,7 @@ async function updateIngress(projectId: string, subdomain: string) {
         return true;
     }
     ingress.spec.rules.push({
-        host: `${subdomain}.${MAIN_DEP_URL}.com`,
+        host: `${subdomain}.${MAIN_DEP_URL}`,
         http: {
             paths: [{ path: '/', pathType: 'Prefix', backend: { service: { name: `service-${projectId}`, port: { number: 80 } } } }]
         }

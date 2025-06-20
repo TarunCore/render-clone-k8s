@@ -99,14 +99,14 @@ const ProjectsPage = () => {
                   placeholder="Enter project name"
                   name="projectName"
                 />
-                <Input
+                {/* <Input
                   isRequired
                   label="Description"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Enter description"
                   name="description"
-                />
+                /> */}
                 <Input
                   isRequired
                   label="GitHub URL"
@@ -165,7 +165,7 @@ const ProjectsPage = () => {
             <ModalFooter>
               <Button
                 variant="light"
-                onClick={() => setIsModalOpen(false)}
+                onPress={() => setIsModalOpen(false)}
                 type="button"
               >
                 Cancel
@@ -212,7 +212,7 @@ const ProjectsPage = () => {
 
               <p
                 className={
-                  status === "running" ? "text-green-500" : "text-red-600"
+                  deployment.status === "running" ? "text-green-500" : "text-red-600"
                 }
               >
                 {convertToProperCase(deployment.status)}

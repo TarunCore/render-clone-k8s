@@ -15,9 +15,10 @@ const createProjectschema = z.object({
 
 type CreateProjectType = z.infer<typeof createProjectschema>;
 
-async function getProjects(): Promise<Project[]> {
+async function getProjects(user_id: string): Promise<Project[]> {
     const result = await client.query<Project>(
-        'SELECT * FROM projects'
+        'SELECT * FROM projects WHERE deployed_by = $1',
+        [user_id]
     );
     return result.rows;
 }
@@ -63,7 +64,17 @@ async function updateProject(id: string, updates: Partial<Project>): Promise<Pro
     return result.rows[0];
 }
 
+async function updateDBStatus(projectId: string, status: string) {
+    client.query("UPDATE projects SET status = $1 WHERE id = $2  RETURNING last_build_id", [status, projectId]).then((data) => {
+        const last_build_id = data.rows[0]?.last_build_id;
+        if (last_build_id) {
+          client.query("UPDATE builds SET status = $1 WHERE id = $2", [status, last_build_id]);
+        }
+    })
+}
+
 async function checkAndUpdatePodStatus(projectId: string) {
+    let podStatus = "running";
     try {
         const pod = await k8sApi.readNamespacedPod({
             namespace: 'default',
@@ -71,20 +82,18 @@ async function checkAndUpdatePodStatus(projectId: string) {
         });
         // logger.info(`Pod status for project ${projectId}: ${pod.status?.phase}`);
         if (pod.status?.phase === 'Failed' || pod.status?.phase === 'Succeeded') {
-            client.query("UPDATE projects SET status = 'failed' WHERE id = $1  RETURNING last_build_id", [projectId]).then((data) => {
-                const last_build_id = data.rows[0]?.last_build_id;
-                if (last_build_id) {
-                  client.query("UPDATE builds SET status = 'failed' WHERE id = $1", [last_build_id]);
-                }
-            })
+            updateDBStatus(projectId, "failed");
+            podStatus="failed";
             // client.query("UPDATE builds SET status = 'failed' WHERE project_id = $1 &", [projectId]);
         }
     }
     catch (error) {
+        podStatus = "failed";
         console.error("Error fetching pod status:", error);
+        updateDBStatus(projectId, "failed");
         return { status: "error", message: "Failed while fetching pod status" };
     }
-    return { status: "success", message: "Pod status checked successfully" };
+    return { status: "success", message: "Pod status checked successfully", podStatus: podStatus };
 }
 
 export { createProject, getProjects, getProjectById, updateProject, checkAndUpdatePodStatus };
