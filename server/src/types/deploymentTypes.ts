@@ -38,4 +38,5 @@ export type Project = {
     run_commands: string;
     install_commands: string;
     env_variables: string;
+    port: number;
   };

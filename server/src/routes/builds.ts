@@ -3,9 +3,10 @@ import { asyncHandler } from "../util/common";
 import { createUser, hasProjectPermission, loginUser } from "../services/authServices";
 import { client } from "../configs/db";
 import k8sApi, { coreApi, networkingApi } from "../configs/k8s";
-import { createClusterIPService, updateIngress } from "../services/buildService";
+import { createClusterIPService, deletePodAndService, updateIngress } from "../services/buildService";
 import { jwtMiddleware } from "../middleware/auth";
 import logger from "../logger";
+import { Project } from "../types/deploymentTypes";
 
 const buildRouter = express.Router();
 interface Command {
@@ -50,7 +51,7 @@ const projectTypeToImage = {
     "go": "golang:1.20"
 }
 
-function getPodManifest(projectId: string, command: string, projectType: keyof typeof projectTypeToImage) { // TODO: change to project_id
+function getPodManifest(projectId: string, command: string, projectType: keyof typeof projectTypeToImage, port: number) { // TODO: change to project_id
     const podManifest = {
         metadata: {
             name: `pod-${projectId}`,
@@ -63,7 +64,7 @@ function getPodManifest(projectId: string, command: string, projectType: keyof t
                     image: projectTypeToImage[projectType],
                     command: ['sh', '-c'],
                     args: [command],
-                    ports: [{ containerPort: 3000 }],
+                    ports: [{ containerPort: port }],
                 }
             ],
             restartPolicy: 'Never'
@@ -85,27 +86,19 @@ buildRouter.post("/create/", jwtMiddleware, asyncHandler(async (req: Request, re
         return res.status(400).send({ status: "error", message: "Missing required fields" });
     }
 
-    const project = await client.query("SELECT subdomain, build_commands, install_commands, run_commands, env_variables FROM projects WHERE id = $1", [project_id]);
+    const project = await client.query<Project>("SELECT subdomain, build_commands, install_commands, run_commands, env_variables, port FROM projects WHERE id = $1", [project_id]);
     const command = getCommand(github_url, {
         buildCommand: project.rows[0].build_commands,
         installCommand: project.rows[0].install_commands,
         runCommand: project.rows[0].run_commands,
         envVariables: project.rows[0].env_variables
     });
-    const podManifest = getPodManifest(project_id, command, project_type);
-
-    try {
-        const existingPod = await k8sApi.readNamespacedPod({ namespace: 'default', name: `pod-${project_id}` });
-        if (existingPod) {
-            await k8sApi.deleteNamespacedPod({ namespace: 'default', name: `pod-${project_id}` });
-        }
-        const existingService = await coreApi.readNamespacedService({ namespace: 'default', name: `service-${project_id}` });
-        if (existingService) {
-            await coreApi.deleteNamespacedService({ namespace: 'default', name: `service-${project_id}` });
-        }
-    } catch (e) {
-        console.log("Pod not found. Creating new pod.")
+    if(!project.rows[0].port) {
+        return res.status(400).send({ status: "error", message: "Port not found" });
     }
+    const podManifest = getPodManifest(project_id, command, project_type, project.rows[0].port);
+
+    await deletePodAndService(project_id);
 
     // Apply podManifest
     const data = await k8sApi.createNamespacedPod({
@@ -113,7 +106,7 @@ buildRouter.post("/create/", jwtMiddleware, asyncHandler(async (req: Request, re
         body: podManifest
     });
 
-    const service = await createClusterIPService(project_id);
+    const service = await createClusterIPService(project_id, project.rows[0].port);
     if (!service) {
         return res.status(400).send({ status: "error", message: "Service creation failed", error: service });
     }
@@ -129,7 +122,7 @@ buildRouter.post("/create/", jwtMiddleware, asyncHandler(async (req: Request, re
         return res.status(400).send({ status: "error", message: "DB update failed" });
     }
     await client.query("UPDATE projects SET status = 'running', last_deployed_at = $1, last_build_id = $2 WHERE id = $3", [new Date(), buildData.rows[0].id, project_id]);
-    res.status(200).send({ status: "success", message: "Build started", data, podManifest });
+    res.status(200).send({ status: "success", message: "Pod, Service, Ingress Created. Build started", data, podManifest });
 }));
 buildRouter.post("/create/service/:project_id", asyncHandler(async (req: Request, res: Response) => {
     res.send("Not available");

@@ -9,7 +9,7 @@ export type Projects = {
     subdomain: string;
     status: Projectstatus;
     status_message: string;
-    port: string;
+    port: number;
     expires_at: string;
     github_url: string;
     last_deployed_branch: string;

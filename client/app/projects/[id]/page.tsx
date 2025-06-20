@@ -17,6 +17,7 @@ import RefreshIcon from '@/components/icons/RefreshIcon';
 import { convertToProperCase } from '@/utils/commonUtils';
 import { HOST_URL } from '@/config/constants';
 import GithubRepo from './_components/GithubRepo';
+import { addToast } from '@heroui/toast';
 const convert = new AnsiToHtml();
 // const ws = new WebSocket('ws://localhost:3001/');
 
@@ -36,7 +37,7 @@ const ManageProjectsPage = () => {
         runCommand: "",
         envVariables: "",
         projectType: "nodejs",
-        port: "",
+        port: 3000,
     });
     const [isUpdating, setIsUpdating] = useState(false);
 
@@ -124,7 +125,7 @@ const ManageProjectsPage = () => {
                 runCommand: deployment.run_commands || "",
                 envVariables: deployment.env_variables || "",
                 projectType: deployment.project_type || "nodejs",
-                port: deployment.port || "",
+                port: deployment.port || 3000,
             });
         }
     }, [deployment]);
@@ -169,7 +170,7 @@ const ManageProjectsPage = () => {
     const pullAndDeploy = async (e: React.FormEvent) => {
         e.preventDefault();
         const { installCommand, buildCommand, runCommand, envVariables, projectType, port } = projectSettings;
-        if (buildCommand === "" && installCommand === "" && runCommand === "" && envVariables === "" && port === "") {
+        if (buildCommand === "" && installCommand === "" && runCommand === "" && envVariables === "" && port === 3000) {
             alert("Please update the project settings first");
             return;
         }
@@ -182,6 +183,11 @@ const ManageProjectsPage = () => {
                 project_type: projectType,
             });
             if (response.status === 200) {
+                addToast({
+                    title: "Pull and deploy started",
+                    description: response.data.message,
+                    color: "success",
+                });
                 console.log("Pull and deploy started");
             }
         } catch (err) {
@@ -378,8 +384,8 @@ const ManageProjectsPage = () => {
                             />
                             <Input
                                 label="Port"
-                                value={projectSettings.port}
-                                onChange={(e) => setProjectSettings((prev) => ({ ...prev, port: e.target.value }))}
+                                value={projectSettings.port.toString()}
+                                onChange={(e) => setProjectSettings((prev) => ({ ...prev, port: parseInt(e.target.value) }))}
                                 placeholder="3000"
                                 name="port"
                             />

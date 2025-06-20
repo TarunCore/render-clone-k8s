@@ -1,13 +1,13 @@
 import { MAIN_DEP_URL } from "../config";
-import { coreApi, networkingApi } from "../configs/k8s";
+import k8sApi, { coreApi, networkingApi } from "../configs/k8s";
 import logger from "../logger";
 
-async function createClusterIPService(projectId: string) {
+async function createClusterIPService(projectId: string, port: number) {
     const service = {
         metadata: { name: `service-${projectId}` }, // TODO: use proper naming
         spec: {
             selector: { app: `${projectId}` },
-            ports: [{ port: 80, targetPort: 3000 }],
+            ports: [{ port: 80, targetPort: port }],
             type: 'ClusterIP'
         }
     };
@@ -55,4 +55,18 @@ async function updateIngress(projectId: string, subdomain: string) {
     }
     return true;
 }
-export { createClusterIPService, updateIngress };
+
+async function deletePodAndService(project_id: string) {
+    try {
+        await k8sApi.deleteNamespacedPod({ namespace: 'default', name: `pod-${project_id}` });
+    } catch (e) {
+        console.log("Pod not found. Creating new pod.")
+    }
+    try {
+        await coreApi.deleteNamespacedService({ namespace: 'default', name: `service-${project_id}` });
+    } catch (e) {
+        console.log("Service not found. Creating new service.")
+    }
+}
+
+export { createClusterIPService, updateIngress, deletePodAndService };

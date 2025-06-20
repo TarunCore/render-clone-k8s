@@ -6,7 +6,7 @@ A deployment service similar to [render.com](https://render.com), powered by **K
 - The backend handles the deployment logic and interacts with Kubernetes to spin up pods for different user services.
 ---
 
-![image](https://github.com/user-attachments/assets/f6acb6f0-b29d-4ab8-8b8c-ed6ea50baff5)
+![image](https://github.com/user-attachments/assets/de2aa9fd-eede-471a-96ae-99b4b3679ba0)
 
 ## Kubernetes Setup (Azure AKS)
 
