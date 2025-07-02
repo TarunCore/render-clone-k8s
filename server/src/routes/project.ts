@@ -3,7 +3,6 @@ import { asyncHandler } from "../util/common";
 import { createUser, hasProjectPermission, loginUser } from "../services/authServices";
 import { checkAndUpdatePodStatus, createProject, getProjectById, getProjects, updateProject } from "../services/projectServices";
 import { client } from "../configs/db";
-import { DEP_MANAGER_BASE_URL } from "../config";
 import { jwtMiddleware } from "../middleware/auth";
 import k8sApi from "../configs/k8s";
 

@@ -1,4 +1,3 @@
-import { DEP_MANAGER_BASE_URL } from "../config";
 import { client } from "../configs/db";
 import k8sApi from "../configs/k8s";
 import logger from "../logger";

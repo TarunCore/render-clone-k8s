@@ -15,7 +15,7 @@ import SettingsIcon from '@/components/icons/SettingsIcon';
 import { Input, Textarea } from "@heroui/input";
 import RefreshIcon from '@/components/icons/RefreshIcon';
 import { convertToProperCase } from '@/utils/commonUtils';
-import { HOST_URL } from '@/config/constants';
+import { MAIN_DEP_URL } from '@/config/constants';
 import GithubRepo from './_components/GithubRepo';
 import { addToast } from '@heroui/toast';
 const convert = new AnsiToHtml();
@@ -301,8 +301,8 @@ const ManageProjectsPage = () => {
                                     </span>
                                 </div>
                             )}
-                            <Link className="text-sm inline-flex items-center gap-1" target="_blank" href={`http://${deployment?.subdomain}${HOST_URL}`}>
-                                {`${deployment?.subdomain}${HOST_URL}`}
+                            <Link className="text-sm inline-flex items-center gap-1" target="_blank" href={`http://${deployment?.subdomain}${MAIN_DEP_URL}`}>
+                                {`${deployment?.subdomain}${MAIN_DEP_URL}`}
                                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
                                     <path d="M3.5 3C3.22386 3 3 2.77614 3 2.5C3 2.22386 3.22386 2 3.5 2H9.5C9.77614 2 10 2.22386 10 2.5V8.5C10 8.77614 9.77614 9 9.5 9C9.22386 9 9 8.77614 9 8.5V3.70711L2.85355 9.85355C2.65829 10.0488 2.34171 10.0488 2.14645 9.85355C1.95118 9.65829 1.95118 9.34171 2.14645 9.14645L8.29289 3H3.5Z" fill="currentColor"/>
                                 </svg>
