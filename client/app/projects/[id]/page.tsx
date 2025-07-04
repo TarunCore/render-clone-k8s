@@ -3,7 +3,7 @@ import api from '@/components/axios'
 import { Projects } from '@/types/projectTypes';
 import { Button } from '@heroui/button';
 import { useParams } from 'next/navigation';
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import { Divider } from "@heroui/divider";
 import PullIcon from '@/components/icons/PullIcon';
 import { Link } from '@heroui/link';
@@ -18,11 +18,15 @@ import { convertToProperCase } from '@/utils/commonUtils';
 import { MAIN_DEP_URL } from '@/config/constants';
 import GithubRepo from './_components/GithubRepo';
 import { addToast } from '@heroui/toast';
+import { useRouter } from 'next/navigation';
+
 const convert = new AnsiToHtml();
 // const ws = new WebSocket('ws://localhost:3001/');
 
 const ManageProjectsPage = () => {
     const params = useParams<{ id: string }>()
+    const router = useRouter();
+    const wsRef = useRef<WebSocket | null>(null);
     const [selectedBranch, setSelectedBranch] = useState("");
     const [deployment, setProject] = useState<Projects | null>(null);
     const [logs, setLogs] = useState<string[]>([]);
@@ -130,10 +134,15 @@ const ManageProjectsPage = () => {
         }
     }, [deployment]);
 
-    useEffect(() => {
-        if (!params.id) return;
-
-        const ws = new WebSocket('ws://localhost:8080/');
+    const connectWebSocket = () => {
+        if (wsRef.current) {
+            wsRef.current.close();
+        }
+        if (!process.env.NEXT_PUBLIC_WEBSOCKET_URL) {
+            console.error("WebSocket URL is not defined");
+            return;
+        }
+        const ws = new WebSocket(process.env.NEXT_PUBLIC_WEBSOCKET_URL);
 
         ws.onopen = () => {
             ws.send(JSON.stringify({ type: 'frontend-subscribe', deploymentId: params.id }));
@@ -141,8 +150,7 @@ const ManageProjectsPage = () => {
 
         ws.onmessage = (event) => {
             const message = event.data;
-            // const htmlLogs = convert.toHtml(message);
-            setLogs(prev => [...prev, message]); // prepend new log to the top
+            setLogs(prev => [...prev, message]);
         };
 
         ws.onerror = (error) => {
@@ -153,19 +161,38 @@ const ManageProjectsPage = () => {
             console.log("WebSocket closed");
         };
 
+        wsRef.current = ws;
+        return ws;
+    };
+
+    useEffect(() => {
+        if (!params.id) return;
+
+        const ws = connectWebSocket();
+
         return () => {
-            ws.close(); // cleanup on component unmount
+            ws?.close();
+            wsRef.current = null;
         };
     }, [params.id]);
-    const watchLogs = async () => {
-        try {
-            const response = await api.post('/projects/' + params.id + '/watch-logs');
-            if (response.status === 200) {
-                console.log("Logs watched");
+
+    const refreshStatus = async () => {
+        connectWebSocket();
+        
+        api.get('/projects/status/' + params.id).then((res) => {
+            if (res.status === 200) {
+                const { podStatus } = res.data;
+                if (deployment) {
+                    console.log(podStatus);
+                    setProject({...deployment, status: podStatus});
+                    if(status !== podStatus) {
+                        setLogs([]);
+                    }
+                }
             }
-        } catch (err) {
+        }).catch((err) => {
             console.log(err);
-        }
+        });
     }
     const pullAndDeploy = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -219,10 +246,22 @@ const ManageProjectsPage = () => {
         }
     };
 
+    const deleteProject = async () => {
+        const response = await api.delete(`/projects/${params.id}`);
+        if (response.status === 200) {
+            addToast({
+                title: "Project deleted",
+                description: response.data.message,
+                color: "danger",
+            });
+            router.push('/projects');
+        }
+    }
+
     return (
         <div className="flex h-[calc(100vh-4.5rem)]">
             {/* Sidebar */}
-            <aside className="w-64 border-r border-neutral-200 dark:border-neutral-700 p-4 flex flex-col gap-4">
+            <aside className="w-42 sm:w-64 border-r border-neutral-200 dark:border-neutral-700 p-4 flex flex-col gap-4">
                 <h1 className="text-xl font-bold mb-2">Project</h1>
                 <nav className="flex flex-col gap-2">
                     <button
@@ -316,6 +355,9 @@ const ManageProjectsPage = () => {
                         <div className="">
                             <div className="flex items-center gap-2 mb-2">
                                 <h2 className="text-2xl font-bold">Logs</h2>
+                                <Button isIconOnly aria-label="Watch" color="warning" variant="faded" onPress={refreshStatus}>
+                                    <RefreshIcon />
+                                </Button>
                             </div>
                             <Divider className="my-4" />
                             <div className="p-4 rounded-md max-h-[60vh] overflow-y-auto bg-neutral-100 dark:bg-neutral-800 font-mono text-sm whitespace-pre-wrap">
@@ -414,14 +456,26 @@ const ManageProjectsPage = () => {
                                 >
                                     <img src="/icons/python.svg" height="48" width="48" alt="Python logo" />
                                 </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setProjectSettings((prev) => ({ ...prev, projectType: 'go' }))}
+                                    className={`border-2 rounded-lg p-1 ${projectSettings.projectType === 'go' ? 'border-blue-500' : 'border-transparent'}`}
+                                    aria-label="Golang"
+                                >
+                                    <img src="/icons/go.svg" height="48" width="48" alt="Golang logo" />
+                                </button>
                             </div>
 
-                            <div className="flex gap-4">
-                                <Button variant="light" type="button" onClick={() => setActiveSection('overview')}>Cancel</Button>
+                            <div className="flex gap-4 justify-end flex-wrap">
+                                {/* <Button variant="light" type="button" onClick={() => setActiveSection('overview')}>Cancel</Button> */}
                                 <Button color="primary" type="submit" isLoading={isUpdating} disabled={isUpdating}>
                                     Update
                                 </Button>
+                                <Button color="danger" type="button" onPress={() => deleteProject()}>
+                                    Delete Project
+                                </Button>
                             </div>
+                            {/* Delete Project */}
                         </form>
                     </section>
                 )}

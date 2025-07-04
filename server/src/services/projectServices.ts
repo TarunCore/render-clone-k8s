@@ -3,12 +3,13 @@ import k8sApi from "../configs/k8s";
 import logger from "../logger";
 import { Project } from "../types/deploymentTypes";
 import { z } from "zod";
+import { deletePodAndService } from "./buildService";
 // import fetch from "node-fetch"
 const createProjectschema = z.object({
     name: z.string().min(1, "Name is required"),
     description: z.string().optional(),
     github_url: z.string().url("Must be a valid URL"),
-    project_type: z.enum(["nodejs", "python","go"]),
+    project_type: z.enum(["nodejs", "python", "go"]),
     subdomain: z.string().min(1, "Subdomain is required")
 });
 
@@ -67,32 +68,63 @@ async function updateDBStatus(projectId: string, status: string) {
     client.query("UPDATE projects SET status = $1 WHERE id = $2  RETURNING last_build_id", [status, projectId]).then((data) => {
         const last_build_id = data.rows[0]?.last_build_id;
         if (last_build_id) {
-          client.query("UPDATE builds SET status = $1 WHERE id = $2", [status, last_build_id]);
+            client.query("UPDATE builds SET status = $1 WHERE id = $2", [status, last_build_id]);
         }
     })
 }
 
 async function checkAndUpdatePodStatus(projectId: string) {
-    let podStatus = "running";
+    let podStatus = "failed";
     try {
         const pod = await k8sApi.readNamespacedPod({
             namespace: 'default',
             name: `pod-${projectId}`
         });
         // logger.info(`Pod status for project ${projectId}: ${pod.status?.phase}`);
-        if (pod.status?.phase === 'Failed' || pod.status?.phase === 'Succeeded') {
+        if (pod.status?.phase === 'Running') {
+            updateDBStatus(projectId, "running");
+            podStatus = "running";
+        } else {
             updateDBStatus(projectId, "failed");
-            podStatus="failed";
-            // client.query("UPDATE builds SET status = 'failed' WHERE project_id = $1 &", [projectId]);
+            podStatus = "failed";
         }
     }
     catch (error) {
         podStatus = "failed";
-        console.error("Error fetching pod status:", error);
+        logger.error(`Error fetching pod status for project ${projectId}:`, error);
         updateDBStatus(projectId, "failed");
-        return { status: "error", message: "Failed while fetching pod status" };
+        return { status: "error", message: "Failed while fetching pod status", podStatus };
     }
-    return { status: "success", message: "Pod status checked successfully", podStatus: podStatus };
+    return { status: "success", message: "Pod status checked successfully", podStatus };
 }
 
-export { createProject, getProjects, getProjectById, updateProject, checkAndUpdatePodStatus };
+async function deleteProject(projectId: string) {
+    deletePodAndService(projectId);
+
+    try {
+        await client.query('BEGIN');
+
+        await client.query(
+            `UPDATE projects SET last_build_id = NULL WHERE id = $1`,
+            [projectId]
+        );
+
+        await client.query(
+            `DELETE FROM builds WHERE project_id = $1`,
+            [projectId]
+        );
+
+        await client.query(
+            `DELETE FROM projects WHERE id = $1`,
+            [projectId]
+        );
+
+        await client.query('COMMIT');
+    } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+    } finally {
+    }
+}
+
+export { createProject, getProjects, getProjectById, updateProject, checkAndUpdatePodStatus, deleteProject };

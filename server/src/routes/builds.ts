@@ -48,7 +48,7 @@ function getCommand(githubUrl: string, commands: Command) {
 const projectTypeToImage = {
     "nodejs": "node:22.15",
     "python": "python:3.10.17",
-    "go": "golang:1.20"
+    "go": "golang:1.24.4"
 }
 
 function getPodManifest(projectId: string, command: string, projectType: keyof typeof projectTypeToImage, port: number) { // TODO: change to project_id

@@ -64,19 +64,23 @@ kind create cluster --config clusters.yml --name local
 kind delete cluster --name local
 ```
 
-## TLS
+## TLS - Self Signed
 ```sh
-openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-  -keyout tls.key -out tls.crt \
-  -subj "/CN=*.ffcscombogen.in/O=ffcscombogen.in" \
-  -addext "subjectAltName=DNS:*.ffcscombogen.in"
-
+openssl req -x509 -nodes -days 365 \
+  -newkey rsa:2048 \
+  -keyout wildcard.key \
+  -out wildcard.crt \
+  -subj "/CN=*.tarundev.com/O=tarundev" \
+  -addext "subjectAltName = DNS:*.tarundev.com"
+kubectl create secret tls wildcard-tls \
+  --cert=wildcard.crt \
+  --key=wildcard.key
 ```
-
-```sh
-kubectl create secret tls wildcard-ffcscombogen-tls \
-  --cert=tls.crt \
-  --key=tls.key \
-  -n default
+Update Ingress
+```yaml
+spec:
+  tls:
+    - hosts:
+        - "*.tarundev.com"
+      secretName: wildcard-tls
 ```
-Use this ingress file for HTTPS `server/k8s/own-tls.ingress.yml`

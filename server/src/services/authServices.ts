@@ -4,13 +4,12 @@ import bcrypt from "bcrypt";
 import 'dotenv/config'
 import { User } from "../types/userType";
 async function createUser(data: any) {
-    const { email, username, password, provider } = data;
+    const { email, username, password, provider, avatar } = data;
     const hashedPassword = await bcrypt.hash(password, 10);
-    const result = await client.query('INSERT INTO users(email, username, password, provider) VALUES ($1, $2, $3, $4) RETURNING id, email, username, provider', [email, username, hashedPassword, provider]);
+    const result = await client.query('INSERT INTO users(email, username, password, provider, avatar) VALUES ($1, $2, $3, $4, $5) RETURNING id, email, username, provider, avatar', [email, username, hashedPassword, provider, avatar]);
     return result.rows[0];
 }
 
-//loginUser
 async function loginUser(email: string, username: string, password: string) {
     const result = await client.query('SELECT * FROM users WHERE email = $1 OR username = $2', [email, username]);
     if (result.rows.length === 0) {
@@ -27,8 +26,8 @@ async function loginUser(email: string, username: string, password: string) {
             message: 'Invalid password'
         }
     }
-    const token = jwt.sign({ id: user.id, username, email: user.email }, process.env.JWT_SECRET as string, {
-        expiresIn: '2d',
+    const token = jwt.sign({ id: user.id, username, email: user.email, avatar: user.avatar }, process.env.JWT_SECRET as string, {
+        expiresIn: '3d',
     });
     return {
         success: true,
@@ -64,11 +63,12 @@ async function LoginWithGithub(accessToken: string) {
         const user = await createUser({
             email: primaryEmail,
             username: userData.login,
+            avatar: userData.avatar_url,
             password: '',
             provider: 'github',
         });
-        const token = jwt.sign({ id: user.id, username: user.username, email: user.email }, process.env.JWT_SECRET as string, {
-            expiresIn: '2d',
+        const token = jwt.sign({ id: user.id, username: user.username, email: user.email, avatar: userData.avatar_url }, process.env.JWT_SECRET as string, {
+            expiresIn: '3d',
         });
         return {
             message: "User created successfully using Github",
@@ -77,8 +77,8 @@ async function LoginWithGithub(accessToken: string) {
             user
         };
     }
-    const token = jwt.sign({ id: result.rows[0].id, username: result.rows[0].username, email: result.rows[0].email }, process.env.JWT_SECRET as string, {
-        expiresIn: '2d',
+    const token = jwt.sign({ id: result.rows[0].id, username: result.rows[0].username, email: result.rows[0].email, avatar: result.rows[0].avatar }, process.env.JWT_SECRET as string, {
+        expiresIn: '3d',
     });
     return {
         message: "User logged in successfully using Github",
@@ -89,7 +89,7 @@ async function LoginWithGithub(accessToken: string) {
 }
 
 async function hasProjectPermission(projectId: string, User: User | null | undefined) {
-    if(!User) {
+    if (!User) {
         return false;
     }
     const userId = User.id;

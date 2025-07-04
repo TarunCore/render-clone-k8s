@@ -26,28 +26,26 @@ export default function Home() {
 
       <div className="flex gap-3">
         
-        <Link
+        {/* <Link
           isExternal
           className={buttonStyles({ variant: "bordered", radius: "full" })}
           href={siteConfig.links.github}
         >
           <GithubIcon size={20} />
           GitHub
-        </Link>
+        </Link> */}
       </div>
-      <UserProvider>
-        <UserActionSection />
-      </UserProvider>
+      
       <section className="py-10 px-4  from-default-50 to-default-100 dark:from-default-900/20 dark:to-default-800/20">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
+          {/* <div className="text-center mb-16">
             <h2 className={title({class: "mb-6" })}>
               Deploy in <span className={title({ color: "blue" })}>3 simple steps</span>
             </h2>
             <p className={subtitle({ class: "max-w-2xl mx-auto" })}>
               Get your application live in minutes, not hours
             </p>
-          </div>
+          </div> */}
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="text-center">
@@ -56,7 +54,7 @@ export default function Home() {
               </div>
               <h3 className="text-xl font-semibold mb-4">Connect Your Repository</h3>
               <p className="text-default-600">
-                Connect your GitHub, GitLab, or Bitbucket repository with just a few clicks.
+                Connect your GitHub, GitLab repository with just a few clicks.
               </p>
             </div>
 
@@ -76,12 +74,15 @@ export default function Home() {
               </div>
               <h3 className="text-xl font-semibold mb-4">Go Live</h3>
               <p className="text-default-600">
-                Your application is live with SSL, CDN, and monitoring included out of the box.
+                Your application is live with custom subdomain and SSL certificate.
               </p>
             </div>
           </div>
         </div>
       </section>
+      <UserProvider>
+        <UserActionSection />
+      </UserProvider>
     </section>
   );
 }

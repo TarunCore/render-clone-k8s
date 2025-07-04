@@ -19,6 +19,7 @@ import { convertToProperCase } from "@/utils/commonUtils";
 const projectTypes = [
   { type: "nodejs", label: "Node.js", icon: "nodejs.svg" },
   { type: "python", label: "Python", icon: "python.svg" },
+  { type: "go", label: "Go", icon: "go.svg" },
 ];
 
 const ProjectsPage = () => {
@@ -38,7 +39,7 @@ const ProjectsPage = () => {
         setProjects(response.data.data);
       }
       console.log(response.data);
-    } catch (err) {}
+    } catch (err) { }
   }
 
   useEffect(() => {
@@ -68,8 +69,8 @@ const ProjectsPage = () => {
   return (
     // <div className='flex'>
     // Originaly Layout had pt-16 and max-w-7xl mx-auto
-    <div className="max-w-7xl pt-12 mx-auto">
-      <div className="flex justify-between items-center">
+    <div className="max-w-6xl pt-12 mx-auto">
+      <div className="flex justify-between items-center pb-6">
         <h1 className="text-2xl font-bold">Projects</h1>
         <Button
           variant="solid"
@@ -205,8 +206,11 @@ const ProjectsPage = () => {
                 <p className="dark:text-gray-400 text-sm">
                   {deployment.description}
                 </p>
-                <Link className="text-sm" href={deployment.github_url}>
+                <Link className="text-sm inline-flex items-center gap-1" href={deployment.github_url} target="_blank">
                   {deployment.github_url}
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M3.5 3C3.22386 3 3 2.77614 3 2.5C3 2.22386 3.22386 2 3.5 2H9.5C9.77614 2 10 2.22386 10 2.5V8.5C10 8.77614 9.77614 9 9.5 9C9.22386 9 9 8.77614 9 8.5V3.70711L2.85355 9.85355C2.65829 10.0488 2.34171 10.0488 2.14645 9.85355C1.95118 9.65829 1.95118 9.34171 2.14645 9.14645L8.29289 3H3.5Z" fill="currentColor" />
+                  </svg>
                 </Link>
               </div>
 

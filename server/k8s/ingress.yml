@@ -4,6 +4,10 @@ metadata:
   name: main-ingress
 spec:
   ingressClassName: nginx
+  tls:
+    - hosts:
+        - "*.tarundev.com"
+      secretName: wildcard-tls
   rules:
     - host: slug.tarundev.com
       http:

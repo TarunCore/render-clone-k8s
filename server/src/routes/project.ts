@@ -1,7 +1,7 @@
 import express, { Request, Response } from "express";
 import { asyncHandler } from "../util/common";
 import { createUser, hasProjectPermission, loginUser } from "../services/authServices";
-import { checkAndUpdatePodStatus, createProject, getProjectById, getProjects, updateProject } from "../services/projectServices";
+import { checkAndUpdatePodStatus, createProject, deleteProject, getProjectById, getProjects, updateProject } from "../services/projectServices";
 import { client } from "../configs/db";
 import { jwtMiddleware } from "../middleware/auth";
 import k8sApi from "../configs/k8s";
@@ -63,10 +63,19 @@ router.get("/status/:id", jwtMiddleware, asyncHandler(async (req: Request, res: 
         return;
     }
     const check = await checkAndUpdatePodStatus(req.params.id);
-    if (check.status === "error") {
-        res.status(404).send(check);
+    // if (check.status === "error") {
+    //     res.status(404).send(check);
+    //     return;
+    // }
+    res.send(check);    
+}));
+
+router.delete("/:id", jwtMiddleware, asyncHandler(async (req: Request, res: Response) => {
+    if(!hasProjectPermission(req.params.id, req.user)) {
+        res.status(403).send({ status: "error", message: "You do not have permission to create a project" });
         return;
     }
-    res.send(check);    
+    await deleteProject(req.params.id);
+    res.send({status: "success", message: "Project deleted successfully" });
 }));
 export default router;
