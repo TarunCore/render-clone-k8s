@@ -10,6 +10,9 @@ import { PassThrough } from 'stream';
 import { stream } from "./configs/k8s";
 import cookieParser from "cookie-parser";
 import logger from "./logger";
+import jwt from "jsonwebtoken";
+import { User } from "./types/userType";
+import { hasProjectPermission } from "./services/authServices";
 
 // TODO: Move to separate Logs Watch service 
 const wss = new Websocket.Server({ port: 8080 });
@@ -61,10 +64,35 @@ wss.on('connection', (ws) => {
       return;
     }
 
-    const { type, deploymentId } = parsed;
+    const { type, deploymentId, token } = parsed;
 
     if (type === 'frontend-subscribe' && deploymentId) {
-      // If there's an existing logStream, end it before creating a new one
+      // Verify JWT token
+      if (!token) {
+        ws.send(JSON.stringify({ error: 'Authentication required' }));
+        return;
+      }
+
+      let user: User;
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET as string);
+        if (typeof decoded === 'string') {
+          ws.send(JSON.stringify({ error: 'Invalid token' }));
+          return;
+        }
+        user = decoded as User;
+      } catch (err) {
+        ws.send(JSON.stringify({ error: 'Invalid or expired token' }));
+        return;
+      }
+
+      const hasPermission = await hasProjectPermission(deploymentId, user);
+      if (!hasPermission) {
+        ws.send(JSON.stringify({ error: 'Access denied. You do not own this project.' }));
+        return;
+      }
+
+      // End an existing logStream before creating a new one
       if (logStream) {
         logStream.end();
       }
@@ -77,7 +105,6 @@ wss.on('connection', (ws) => {
         }
       });
       try{
-        // TODO: Add auth
         await stream.log(
           'default',
           `pod-${deploymentId}`,

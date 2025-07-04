@@ -4,6 +4,8 @@ import { createUser, loginUser, LoginWithGithub } from "../services/authServices
 import { client } from "../configs/db";
 import { jwtMiddleware } from "../middleware/auth";
 import dotenv from "dotenv";
+import jwt from "jsonwebtoken";
+
 
 dotenv.config();
 
@@ -91,6 +93,20 @@ userRouter.post("/logout", asyncHandler(async (req: Request, res: Response) => {
     res.status(200).json({
         message: "User logged out successfully",
     });
+}));
+
+// Get a short-lived token for WebSocket authentication
+userRouter.get("/ws-token", jwtMiddleware, asyncHandler(async (req: Request, res: Response) => {
+    if (!req.user) {
+        return res.status(401).json({ message: "Unauthorized" });
+    }
+    // Create a short-lived token (5 minutes) specifically for WebSocket auth
+    const wsToken = jwt.sign(
+        { id: req.user.id, username: req.user.username, email: req.user.email },
+        process.env.JWT_SECRET as string,
+        { expiresIn: '5m' }
+    );
+    res.status(200).json({ token: wsToken });
 }));
 
 

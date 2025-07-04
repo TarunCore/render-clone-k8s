@@ -139,7 +139,7 @@ const ManageProjectsPage = () => {
         }
     }, [deployment]);
 
-    const connectWebSocket = () => {
+    const connectWebSocket = async () => {
         if (wsRef.current) {
             wsRef.current.close();
         }
@@ -147,10 +147,20 @@ const ManageProjectsPage = () => {
             console.error("WebSocket URL is not defined");
             return;
         }
+
+        let wsToken: string | null = null;
+        try {
+            const tokenResponse = await api.get('/users/ws-token');
+            wsToken = tokenResponse.data.token;
+        } catch (err) {
+            console.error("Failed to get WebSocket auth token:", err);
+            return;
+        }
+
         const ws = new WebSocket(process.env.NEXT_PUBLIC_WEBSOCKET_URL);
 
         ws.onopen = () => {
-            ws.send(JSON.stringify({ type: 'frontend-subscribe', deploymentId: params.id }));
+            ws.send(JSON.stringify({ type: 'frontend-subscribe', deploymentId: params.id, token: wsToken }));
         };
 
         ws.onmessage = (event) => {
@@ -173,16 +183,16 @@ const ManageProjectsPage = () => {
     useEffect(() => {
         if (!params.id) return;
 
-        const ws = connectWebSocket();
+        connectWebSocket();
 
         return () => {
-            ws?.close();
+            wsRef.current?.close();
             wsRef.current = null;
         };
     }, [params.id]);
 
     const refreshStatus = async () => {
-        connectWebSocket();
+        await connectWebSocket();
         
         api.get('/projects/status/' + params.id).then((res) => {
             if (res.status === 200) {

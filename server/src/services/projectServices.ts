@@ -73,7 +73,7 @@ async function updateDBStatus(projectId: string, status: string) {
     client.query("UPDATE projects SET status = $1 WHERE id = $2  RETURNING last_build_id", [status, projectId]).then((data) => {
         const last_build_id = data.rows[0]?.last_build_id;
         if (last_build_id) {
-            client.query("UPDATE builds SET status = $1, status_message = $2 WHERE id = $3", [status, "Build Failed", last_build_id]);
+            client.query("UPDATE builds SET status = $1, status_message = $2 WHERE id = $3", [status, status==="failed" ? "Build Failed" : "Running", last_build_id]);
         }
     })
 }
