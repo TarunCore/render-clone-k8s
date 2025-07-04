@@ -94,7 +94,7 @@ async function hasProjectPermission(projectId: string, User: User | null | undef
     }
     const userId = User.id;
 
-    const result = await client.query('SELECT * FROM projects WHERE id = $1 AND deployed_by = $2', [projectId, userId]);
+    const result = await client.query('SELECT * FROM projects WHERE id = $1 AND user_id = $2', [projectId, userId]);
     return result.rows.length > 0;
 }
 

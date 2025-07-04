@@ -14,13 +14,29 @@ interface Command {
     buildCommand?: string;
     runCommand?: string;
     envVariables?: string;
+    branch?: string;
+    commitHash?: string;
+    rootPath?: string;
 }
 function getCommand(githubUrl: string, commands: Command) {
     const repoName = githubUrl.split('/').pop()?.replace(/\.git$/, '') || 'repo';
+    const cloneCmd = commands.branch 
+        ? `git clone -b ${commands.branch} ${githubUrl}` 
+        : `git clone ${githubUrl}`;
     const parts = [
-        `git clone ${githubUrl}`,
+        cloneCmd,
         `cd ${repoName}`
     ];
+
+    if (commands.commitHash) {
+        parts.push(`git checkout ${commands.commitHash}`);
+    }
+    if (commands.rootPath && commands.rootPath !== '/') {
+        const relativePath = commands.rootPath.startsWith('/') 
+            ? commands.rootPath.slice(1) 
+            : commands.rootPath;
+        parts.push(`cd ${relativePath}`);
+    }
 
     if (commands.installCommand) {
         parts.push(commands.installCommand);
@@ -80,18 +96,21 @@ buildRouter.post("/create/", jwtMiddleware, asyncHandler(async (req: Request, re
         return;
     }
 
-    const { github_url, to_deploy_commit_hash, project_type, project_id, branch } = req.body;
+    const { github_url, to_deploy_commit_hash, commit_message, project_type, project_id, branch } = req.body;
     if (!github_url || !to_deploy_commit_hash || !project_type || !project_id || !branch) {
         logger.error("Missing required fields for build creation");
         return res.status(400).send({ status: "error", message: "Missing required fields" });
     }
 
-    const project = await client.query<Project>("SELECT subdomain, build_commands, install_commands, run_commands, env_variables, port FROM projects WHERE id = $1", [project_id]);
+    const project = await client.query<Project>("SELECT subdomain, build_commands, install_commands, run_commands, env_variables, port, root_path FROM projects WHERE id = $1", [project_id]);
     const command = getCommand(github_url, {
         buildCommand: project.rows[0].build_commands,
         installCommand: project.rows[0].install_commands,
         runCommand: project.rows[0].run_commands,
-        envVariables: project.rows[0].env_variables
+        envVariables: project.rows[0].env_variables,
+        branch: branch,
+        commitHash: to_deploy_commit_hash,
+        rootPath: project.rows[0].root_path
     });
     if(!project.rows[0].port) {
         return res.status(400).send({ status: "error", message: "Port not found" });
@@ -114,14 +133,26 @@ buildRouter.post("/create/", jwtMiddleware, asyncHandler(async (req: Request, re
     if (!ingress) {
         return res.status(400).send({ status: "error", message: "Ingress update failed" });
     }
+    // CREATE TABLE builds (
+    //     id SERIAL PRIMARY KEY,
+    //     git_commit_hash VARCHAR(255) NOT NULL,
+    //     git_commit_message TEXT,
+    //     git_branch VARCHAR(60) NOT NULL,
+    //     status VARCHAR(50) NOT NULL,
+    //     status_message TEXT,
+    //     build_started_at TIMESTAMP,
+    //     build_finished_at TIMESTAMP,
+    //     project_id BIGINT,
+    //     logs TEXT DEFAULT ''
+    // );
 
     const buildData = await client.query(`INSERT INTO builds (status, status_message,build_started_at, 
-        commit_hash, commit_message,project_id, branch)
-      VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`, ["running", "Build started", new Date(), to_deploy_commit_hash, "samsple msg", project_id, branch]);
+        git_commit_hash, git_commit_message,project_id, git_branch)
+      VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`, ["running", "Build started", new Date(), to_deploy_commit_hash, commit_message || "No message", project_id, branch]);
     if (buildData.rows.length === 0) {
         return res.status(400).send({ status: "error", message: "DB update failed" });
     }
-    await client.query("UPDATE projects SET status = 'running', last_deployed_at = $1, last_build_id = $2 WHERE id = $3", [new Date(), buildData.rows[0].id, project_id]);
+    await client.query("UPDATE projects SET status = 'running', last_build_id = $1 WHERE id = $2", [buildData.rows[0].id, project_id]);
     res.status(200).send({ status: "success", message: "Pod, Service, Ingress Created. Build started", data, podManifest });
 }));
 buildRouter.post("/create/service/:project_id", asyncHandler(async (req: Request, res: Response) => {

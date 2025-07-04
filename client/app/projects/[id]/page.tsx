@@ -27,10 +27,10 @@ const ManageProjectsPage = () => {
     const params = useParams<{ id: string }>()
     const router = useRouter();
     const wsRef = useRef<WebSocket | null>(null);
-    const [selectedBranch, setSelectedBranch] = useState("");
+    const [selectedBranch, setSelectedBranch] = useState("main");
     const [deployment, setProject] = useState<Projects | null>(null);
     const [logs, setLogs] = useState<string[]>([]);
-    const [commits, setCommits] = useState<string[]>([]);
+    const [commits, setCommits] = useState<{sha: string, message: string}[]>([]);
     const [branches, setBranches] = useState<string[]>([]);
     const [selectedCommit, setSelectedCommit] = useState<string>("");
     const [builds, setBuilds] = useState<any[]>([]);
@@ -42,6 +42,7 @@ const ManageProjectsPage = () => {
         envVariables: "",
         projectType: "nodejs",
         port: 3000,
+        rootPath: "/",
     });
     const [isUpdating, setIsUpdating] = useState(false);
 
@@ -95,11 +96,14 @@ const ManageProjectsPage = () => {
                 return;
             }
             const commitsData = await commitsResponse.json();
-            const commitHashes = commitsData.map((commit: any) => commit.sha);
-            setCommits(commitHashes);
+            const commitsList = commitsData.map((commit: any) => ({
+                sha: commit.sha,
+                message: commit.commit?.message?.split('\n')[0] || 'No message'
+            }));
+            setCommits(commitsList);
             // Select first commit by default if available
-            if (commitHashes.length > 0) {
-                setSelectedCommit(commitHashes[0]);
+            if (commitsList.length > 0) {
+                setSelectedCommit(commitsList[0].sha);
             }
 
             if (branchesResponse.status === 200) {
@@ -108,7 +112,7 @@ const ManageProjectsPage = () => {
                 setBranches(branchNames);
                 // Select first branch by default if available
                 if (branchNames.length > 0) {
-                    setSelectedBranch(branchNames[0]);
+                    setSelectedBranch("main");
                 }
             }
         } catch (err) {
@@ -118,7 +122,7 @@ const ManageProjectsPage = () => {
     useEffect(() => {
         fetchData();
     }, [])
-    const { description, status, last_deployed_hash, last_deployed_at, github_url } = deployment || {};
+    const { description, status, build_details, github_url, root_path } = deployment || {};
 
     useEffect(() => {
         fetchCommitsAndBranches();
@@ -130,6 +134,7 @@ const ManageProjectsPage = () => {
                 envVariables: deployment.env_variables || "",
                 projectType: deployment.project_type || "nodejs",
                 port: deployment.port || 3000,
+                rootPath: deployment.root_path || "/",
             });
         }
     }, [deployment]);
@@ -202,10 +207,12 @@ const ManageProjectsPage = () => {
             return;
         }
         try {
+            const selectedCommitObj = commits.find(c => c.sha === selectedCommit);
             const response = await api.post('/builds/create/', {
                 project_id: params.id,
                 github_url: github_url,
                 to_deploy_commit_hash: selectedCommit,
+                commit_message: selectedCommitObj?.message || 'No message',
                 branch: selectedBranch, // TODO: add support for other branches
                 project_type: projectType,
             });
@@ -232,7 +239,8 @@ const ManageProjectsPage = () => {
                 run_commands: projectSettings.runCommand,
                 env_variables: projectSettings.envVariables,
                 project_type: projectSettings.projectType,
-                port: projectSettings.port
+                port: projectSettings.port,
+                root_path: projectSettings.rootPath
             });
             if (response.status === 200) {
                 setActiveSection('overview');
@@ -314,7 +322,7 @@ const ManageProjectsPage = () => {
                                 onChange={(e) => setSelectedCommit(e.target.value)}
                             >
                                 {commits.map((commit) => (
-                                    <SelectItem key={commit}>{commit}</SelectItem>
+                                    <SelectItem key={commit.sha}>{commit.message}</SelectItem>
                                 ))}
                             </Select>
 
@@ -329,7 +337,7 @@ const ManageProjectsPage = () => {
                         </form>
 
                         <div className="flex flex-col gap-2">
-                            <GithubRepo url={github_url} />
+                            <GithubRepo url={github_url} rootPath={root_path || "/"} />
                             {status && (
                                 <div className="flex items-center gap-2">
                                     <span className="text-sm dark:text-gray-400">Status:</span>
@@ -347,7 +355,7 @@ const ManageProjectsPage = () => {
                                 </svg>
                             </Link>
                             <p className="dark:text-gray-400 text-sm">
-                                Last Deployment: {last_deployed_at ? new Date(last_deployed_at).toDateString() : 'N/A'}
+                                Last Deployment: {build_details?.build_started_at ? new Date(build_details?.build_started_at).toLocaleTimeString() + ' ' + new Date(build_details.build_started_at).toLocaleDateString() : 'N/A'}
                             </p>
                         </div>
 
@@ -384,8 +392,8 @@ const ManageProjectsPage = () => {
                                     className="flex flex-col gap-1 border border-blue-300 p-3 rounded-md"
                                 >
                                     <p className="dark:text-gray-300 text-sm">Build ID: {build.id}</p>
-                                    <p className="dark:text-gray-400 text-sm">Commit Hash: {build.commit_hash}</p>
-                                    <p className="dark:text-gray-400 text-sm">Commit Message: {build.commit_message}</p>
+                                    <p className="dark:text-gray-400 text-sm">Commit Hash: {build.git_commit_hash}</p>
+                                    <p className="dark:text-gray-400 text-sm">Commit Message: {build.git_commit_message}</p>
                                     <p className="dark:text-gray-400 text-sm">
                                         Build Started At:{' '}
                                         {new Date(build.build_started_at).toLocaleTimeString()} {' '}
@@ -430,6 +438,14 @@ const ManageProjectsPage = () => {
                                 onChange={(e) => setProjectSettings((prev) => ({ ...prev, port: parseInt(e.target.value) }))}
                                 placeholder="3000"
                                 name="port"
+                            />
+                            <Input
+                                label="Root Path"
+                                value={projectSettings.rootPath}
+                                onChange={(e) => setProjectSettings((prev) => ({ ...prev, rootPath: e.target.value }))}
+                                placeholder="/"
+                                name="rootPath"
+                                description="For monorepos, specify the subdirectory (e.g., /backend, /server)"
                             />
                             <Textarea
                                 label="Env Variables (as a single string)"

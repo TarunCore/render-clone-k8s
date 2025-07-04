@@ -10,10 +10,8 @@ A deployment service similar to [render.com](https://render.com), powered by **K
 
 ## Kubernetes Setup (Azure AKS)
 
-Kubernetes is **only used** for deploying user services (not the main backend).
-- Use `Azure CNI Node Subnet` as Network Configuration
-- After cluster is created:
-  - Settings -> Networking -> Virutal Network Integration -> Enable Ingress controller 
+- Network Configuration: Azure CNI Node Subnet
+- Virtual Network integration in AKS
 
 ### 1. Ingress Setup
 
@@ -45,7 +43,6 @@ kubectl apply -f ingress.yml
 
 ## Notes
 
-- The **main backend (`server/`) is not containerized or deployed via Kubernetes** yet.
 - All deployment pods (user services) are managed dynamically using Kubernetes from the backend API.
 
 ---

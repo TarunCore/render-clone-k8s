@@ -1,10 +1,10 @@
 import { client } from "../configs/db";
 import k8sApi from "../configs/k8s";
 import logger from "../logger";
-import { Project } from "../types/deploymentTypes";
+import { Build, Project } from "../types/deploymentTypes";
 import { z } from "zod";
 import { deletePodAndService } from "./buildService";
-// import fetch from "node-fetch"
+
 const createProjectschema = z.object({
     name: z.string().min(1, "Name is required"),
     description: z.string().optional(),
@@ -17,7 +17,7 @@ type CreateProjectType = z.infer<typeof createProjectschema>;
 
 async function getProjects(user_id: string): Promise<Project[]> {
     const result = await client.query<Project>(
-        'SELECT * FROM projects WHERE deployed_by = $1',
+        'SELECT * FROM projects WHERE user_id = $1',
         [user_id]
     );
     return result.rows;
@@ -31,7 +31,7 @@ async function createProject(deployment: CreateProjectType, user_id: string): Pr
     }
     const { name, description, github_url, project_type, subdomain } = parseData.data;
     const result = await client.query<Project>(
-        'INSERT INTO projects (name, description, github_url, project_type, status, subdomain, deployed_by) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
+        'INSERT INTO projects (name, description, github_url, project_type, status, subdomain, user_id) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
         [name, description, github_url, project_type, "pending", subdomain, user_id]
     );
     return result.rows[0];
@@ -42,10 +42,15 @@ async function getProjectById(id: string): Promise<Project | null> {
         'SELECT * FROM projects WHERE id = $1',
         [id]
     );
+    const buildResult = await client.query<Build>(
+        'SELECT id, git_commit_hash, git_commit_message, git_branch, build_started_at, build_finished_at, status, status_message FROM builds WHERE project_id = $1 ORDER BY id DESC LIMIT 1',
+        [id]
+    );
+    const buildDetails = buildResult.rows.length > 0 ? buildResult.rows[0] : null;
     if (result.rows.length === 0) {
         return null;
     }
-    return result.rows[0];
+    return { ...result.rows[0], build_details: buildDetails };
 }
 
 async function updateProject(id: string, updates: Partial<Project>): Promise<Project | null> {
@@ -68,7 +73,7 @@ async function updateDBStatus(projectId: string, status: string) {
     client.query("UPDATE projects SET status = $1 WHERE id = $2  RETURNING last_build_id", [status, projectId]).then((data) => {
         const last_build_id = data.rows[0]?.last_build_id;
         if (last_build_id) {
-            client.query("UPDATE builds SET status = $1 WHERE id = $2", [status, last_build_id]);
+            client.query("UPDATE builds SET status = $1, status_message = $2 WHERE id = $3", [status, "Build Failed", last_build_id]);
         }
     })
 }

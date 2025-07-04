@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-function GithubRepo({ url }: { url: string | undefined }) {
+function GithubRepo({ url, rootPath }: { url: string | undefined, rootPath: string }) {
   if (!url) {
     return null;
   }
@@ -15,6 +15,8 @@ function GithubRepo({ url }: { url: string | undefined }) {
       <span className="font-medium">{repoPath.split("/")[0]}</span>
       <span>/</span>
       <span>{repoPath.split("/")[1]}</span>
+      <span>/</span>
+      <span>{rootPath}</span>
     </Link>
   );
 }

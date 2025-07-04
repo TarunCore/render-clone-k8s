@@ -4,7 +4,7 @@ export type Projects = {
     id: string;
     name: string;
     description: string;
-    deployed_by: string;
+    user_id: string;
     project_type: string;
     subdomain: string;
     status: Projectstatus;
@@ -12,11 +12,21 @@ export type Projects = {
     port: number;
     expires_at: string;
     github_url: string;
-    last_deployed_branch: string;
+    root_path: string | "/";
     deployed_url: string;
     last_build_id: string;
-    last_deployed_hash: string;
-    last_deployed_at: string;
+    build_details: {
+        id: string;
+        commit_hash: string;
+        commit_message: string;
+        build_started_at: string;
+        build_finished_at: string;
+        status: Projectstatus;
+        status_message: string;
+        deployed_branch: string;
+        deployed_hash: string;
+        deployed_at: string;
+    }
     created_at: string;
     updated_at: string;
     build_commands: string;

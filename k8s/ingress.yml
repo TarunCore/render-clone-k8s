@@ -1,0 +1,21 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: main-ingress
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - "*.tarundev.com"
+      secretName: wildcard-tls
+  rules:
+    - host: slug.tarundev.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: service-1
+                port:
+                  number: 80

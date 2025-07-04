@@ -2,7 +2,7 @@
 //     id SERIAL PRIMARY KEY,
 //     name VARCHAR(100) NOT NULL UNIQUE,
 //     description TEXT,
-//     deployed_by BIGINT REFERENCES users(id),
+//     user_id BIGINT REFERENCES users(id),
 //     deployed_at TIMESTAMP,
 //     status VARCHAR(50) NOT NULL,
 //     status_message TEXT,
@@ -19,7 +19,7 @@ export type Project = {
     id: string;
     name: string;
     description: string;
-    deployed_by: string;
+    user_id: string;
     deployed_at: string;
     project_type: string;
     subdomain: string;
@@ -30,8 +30,7 @@ export type Project = {
     github_branch: string;
     deployed_url: string;
     last_build_id: string;
-    last_deployed_hash: string;
-    last_deployed_at: string;
+    build_details: Omit<Build, "project_id" | "logs"> | null;
     created_at: string;
     updated_at: string;
     build_commands: string;
@@ -39,4 +38,18 @@ export type Project = {
     install_commands: string;
     env_variables: string;
     port: number;
+    root_path: string;
   };
+
+  export type Build = {
+    id: string;
+    git_commit_hash: string;
+    git_commit_message: string;
+    git_branch: string;
+    build_started_at: string;
+    build_finished_at: string;
+    status: Projectstatus;
+    status_message: string;
+    logs: string;
+    project_id: string;
+  }
