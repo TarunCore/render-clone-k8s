@@ -1,2 +1,2 @@
-## Security
-1. Cron job to check size of container and remove if it crosses 2GB.
+1. Cron job to check size of container and remove.
+2. Use ORM
