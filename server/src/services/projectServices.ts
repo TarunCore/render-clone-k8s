@@ -15,6 +15,23 @@ const createProjectschema = z.object({
 
 type CreateProjectType = z.infer<typeof createProjectschema>;
 
+const ALLOWED_UPDATE_FIELDS = new Set([
+    'name',
+    'description',
+    'github_url',
+    'github_branch',
+    'project_type',
+    'subdomain',
+    'status',
+    'status_message',
+    'build_commands',
+    'run_commands',
+    'install_commands',
+    'env_variables',
+    'port',
+    'root_path'
+]);
+
 async function getProjects(user_id: string): Promise<Project[]> {
     const result = await client.query<Project>(
         'SELECT * FROM projects WHERE user_id = $1',
@@ -54,11 +71,12 @@ async function getProjectById(id: string): Promise<Project | null> {
 }
 
 async function updateProject(id: string, updates: Partial<Project>): Promise<Project | null> {
-    // Build dynamic set clause and values array
-    const fields = Object.keys(updates);
+    // TODO: Use ORM
+    const fields = Object.keys(updates).filter(field => ALLOWED_UPDATE_FIELDS.has(field));
     if (fields.length === 0) {
-        throw new Error("No fields to update");
+        throw new Error("No valid fields to update");
     }
+    
     const setClause = fields.map((field, idx) => `${field} = $${idx + 2}`).join(", ");
     const values = fields.map((field) => (updates as any)[field]);
     const query = `UPDATE projects SET ${setClause}, updated_at = NOW() WHERE id = $1 RETURNING *`;

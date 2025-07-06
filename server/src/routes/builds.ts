@@ -37,6 +37,10 @@ interface CreateBuildRequest {
     branch: string;
 }
 
+function validateGithubUrl(url: string): boolean {
+    return /^https:\/\/github\.com\/[\w.-]+\/[\w.-]+(?:\.git)?$/.test(url);
+}
+
 function buildShellCommand(githubUrl: string, commands: BuildCommand): string {
     const repoName = githubUrl.split('/').pop()?.replace(/\.git$/, '') || 'repo';
     const cloneCmd = commands.branch 
@@ -85,6 +89,10 @@ buildRouter.post("/create/", jwtMiddleware, asyncHandler(async (req: Request, re
     if (!github_url || !to_deploy_commit_hash || !project_type || !project_id || !branch) {
         logger.warn("Build creation failed: missing required fields", { project_id });
         return res.status(400).json({ status: "error", message: "Missing required fields" });
+    }
+
+    if (!validateGithubUrl(github_url)) {
+        return res.status(400).json({ status: "error", message: "Invalid GitHub URL. Only https://github.com URLs are allowed" });
     }
 
     const canAccess = await hasProjectPermission(project_id, req.user);

@@ -200,7 +200,10 @@ const ProjectsPage = () => {
             key={deployment.id + "dep"}
             className="border-1 hover:shadow-md border-gray-600 cursor-pointer rounded-2xl p-4 my-2 dark:bg-neutral-800 dark:hover:bg-neutral-900 animation duration-100"
           >
-            <h2 className="font-bold">{deployment.name}</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="font-bold">{deployment.name}</h2>
+              <img src={`/icons/${deployment.project_type}.svg`} alt={deployment.project_type} className="w-4 h-4" />
+            </div>
             <div className="flex justify-between">
               <div>
                 <p className="dark:text-gray-400 text-sm">

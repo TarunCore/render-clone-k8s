@@ -1,12 +1,19 @@
 import { client } from "../configs/db";
+import { JWT_SECRET } from "../middleware/auth";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
-import 'dotenv/config'
+import crypto from "crypto";
 import { User } from "../types/userType";
+
 async function createUser(data: any) {
     const { email, username, password, provider, avatar } = data;
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const result = await client.query('INSERT INTO users(email, username, password, provider, avatar) VALUES ($1, $2, $3, $4, $5) RETURNING id, email, username, provider, avatar', [email, username, hashedPassword, provider, avatar]);
+    // OAuth -> random pass
+    const passwordToHash = password || crypto.randomBytes(32).toString('hex');
+    const hashedPassword = await bcrypt.hash(passwordToHash, 10);
+    const result = await client.query(
+        'INSERT INTO users(email, username, password, provider, avatar) VALUES ($1, $2, $3, $4, $5) RETURNING id, email, username, provider, avatar', 
+        [email, username, hashedPassword, provider || 'custom', avatar]
+    );
     return result.rows[0];
 }
 
@@ -19,20 +26,27 @@ async function loginUser(email: string, username: string, password: string) {
         }
     }
     const user = result.rows[0];
+    
+    if (user.provider && user.provider !== 'custom') {
+        return {
+            success: false,
+            message: `Please login using ${user.provider}`
+        }
+    }
+    
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
         return {
             success: false,
-            message: 'Invalid password'
+            message: 'Invalid credentials'
         }
     }
-    const token = jwt.sign({ id: user.id, username, email: user.email, avatar: user.avatar }, process.env.JWT_SECRET as string, {
+    const token = jwt.sign({ id: user.id, username, email: user.email, avatar: user.avatar }, JWT_SECRET as string, {
         expiresIn: '3d',
     });
     return {
         success: true,
         token,
-        user
     };
 }
 
@@ -64,27 +78,25 @@ async function LoginWithGithub(accessToken: string) {
             email: primaryEmail,
             username: userData.login,
             avatar: userData.avatar_url,
-            password: '',
+            password: null,
             provider: 'github',
         });
-        const token = jwt.sign({ id: user.id, username: user.username, email: user.email, avatar: userData.avatar_url }, process.env.JWT_SECRET as string, {
+        const token = jwt.sign({ id: user.id, username: user.username, email: user.email, avatar: userData.avatar_url }, JWT_SECRET as string, {
             expiresIn: '3d',
         });
         return {
             message: "User created successfully using Github",
             success: true,
-            token,
-            user
+            token
         };
     }
-    const token = jwt.sign({ id: result.rows[0].id, username: result.rows[0].username, email: result.rows[0].email, avatar: result.rows[0].avatar }, process.env.JWT_SECRET as string, {
+    const token = jwt.sign({ id: result.rows[0].id, username: result.rows[0].username, email: result.rows[0].email, avatar: result.rows[0].avatar }, JWT_SECRET as string, {
         expiresIn: '3d',
     });
     return {
         message: "User logged in successfully using Github",
         success: true,
         token,
-        user: result.rows[0]
     };
 }
 

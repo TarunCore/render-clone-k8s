@@ -27,6 +27,7 @@ const ManageProjectsPage = () => {
     const params = useParams<{ id: string }>()
     const router = useRouter();
     const wsRef = useRef<WebSocket | null>(null);
+    const logsContainerRef = useRef<HTMLDivElement | null>(null);
     const [selectedBranch, setSelectedBranch] = useState("main");
     const [deployment, setProject] = useState<Projects | null>(null);
     const [logs, setLogs] = useState<string[]>([]);
@@ -190,6 +191,12 @@ const ManageProjectsPage = () => {
             wsRef.current = null;
         };
     }, [params.id]);
+
+    useEffect(() => {
+        if (logsContainerRef.current) {
+            logsContainerRef.current.scrollTop = logsContainerRef.current.scrollHeight;
+        }
+    }, [logs]);
 
     const refreshStatus = async () => {
         await connectWebSocket();
@@ -378,7 +385,7 @@ const ManageProjectsPage = () => {
                                 </Button>
                             </div>
                             <Divider className="my-4" />
-                            <div className="p-4 rounded-md max-h-[60vh] overflow-y-auto bg-neutral-100 dark:bg-neutral-800 font-mono text-sm whitespace-pre-wrap">
+                            <div ref={logsContainerRef} className="p-4 rounded-md max-h-[60vh] overflow-y-auto bg-neutral-100 dark:bg-neutral-800 font-mono text-sm whitespace-pre-wrap">
                                 {logs.map((log, index) => (
                                     <p key={index} className="text-md dark:text-gray-100">
                                         {log}
@@ -455,7 +462,7 @@ const ManageProjectsPage = () => {
                                 onChange={(e) => setProjectSettings((prev) => ({ ...prev, rootPath: e.target.value }))}
                                 placeholder="/"
                                 name="rootPath"
-                                description="For monorepos, specify the subdirectory (e.g., /backend, /server)"
+                                description="specify the subdirectory (e.g., /backend, /server)"
                             />
                             <Textarea
                                 label="Env Variables (as a single string)"

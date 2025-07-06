@@ -2,10 +2,9 @@ import express, { Request, Response } from "express";
 import { asyncHandler } from "../util/common";
 import { createUser, loginUser, LoginWithGithub } from "../services/authServices";
 import { client } from "../configs/db";
-import { jwtMiddleware } from "../middleware/auth";
+import { jwtMiddleware, JWT_SECRET } from "../middleware/auth";
 import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
-
 
 dotenv.config();
 
@@ -103,7 +102,7 @@ userRouter.get("/ws-token", jwtMiddleware, asyncHandler(async (req: Request, res
     // Create a short-lived token (5 minutes) specifically for WebSocket auth
     const wsToken = jwt.sign(
         { id: req.user.id, username: req.user.username, email: req.user.email },
-        process.env.JWT_SECRET as string,
+        JWT_SECRET as string,
         { expiresIn: '5m' }
     );
     res.status(200).json({ token: wsToken });

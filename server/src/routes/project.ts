@@ -1,17 +1,16 @@
 import express, { Request, Response } from "express";
 import { asyncHandler } from "../util/common";
-import { createUser, hasProjectPermission, loginUser } from "../services/authServices";
+import { hasProjectPermission } from "../services/authServices";
 import { checkAndUpdatePodStatus, createProject, deleteProject, getProjectById, getProjects, updateProject } from "../services/projectServices";
 import { client } from "../configs/db";
 import { jwtMiddleware } from "../middleware/auth";
-import k8sApi from "../configs/k8s";
 
 const router = express.Router();
 
 router.get("/:id", jwtMiddleware, asyncHandler(async (req: Request, res: Response) => {
     const {id} = req.params;
-    if(!hasProjectPermission(id, req.user)) {
-        res.status(403).send({ status: "error", message: "You do not have permission to create a project" });
+    if(!await hasProjectPermission(id, req.user)) {
+        res.status(403).send({ status: "error", message: "You do not have permission to access this project" });
         return;
     }
     const data = await getProjectById(id);
@@ -27,15 +26,12 @@ router.get("/", jwtMiddleware, asyncHandler(async (req: Request, res: Response) 
     res.send({status: "success", data: data });
 }));
 
-router.get("/:id/builds", asyncHandler(async (req: Request, res: Response) => {
-    if(!hasProjectPermission(req.params.id, req.user)) {
-        res.status(403).send({ status: "error", message: "You do not have permission to create a project" });
+router.get("/:id/builds", jwtMiddleware, asyncHandler(async (req: Request, res: Response) => {
+    if(!await hasProjectPermission(req.params.id, req.user)) {
+        res.status(403).send({ status: "error", message: "You do not have permission to access this project" });
         return;
     }
     const responce = await client.query("SELECT * FROM builds WHERE project_id = $1 ORDER BY id DESC", [req.params.id]);
-    // if (responce.rows.length === 0) {
-    //     return res.send({ status: "error", message: "Build not found", data: [] });
-    // }
     res.send({ status: "success", data: responce.rows });
 }));
 
@@ -49,8 +45,8 @@ router.post("/", jwtMiddleware, asyncHandler(async (req: Request, res: Response)
 }));
 
 router.patch("/:id", jwtMiddleware, asyncHandler(async (req: Request, res: Response) => {
-    if(!hasProjectPermission(req.params.id, req.user)) {
-        res.status(403).send({ status: "error", message: "You do not have permission to create a project" });
+    if(!await hasProjectPermission(req.params.id, req.user)) {
+        res.status(403).send({ status: "error", message: "You do not have permission to modify this project" });
         return;
     }
     const data = await updateProject(req.params.id, req.body);
@@ -58,8 +54,8 @@ router.patch("/:id", jwtMiddleware, asyncHandler(async (req: Request, res: Respo
 }));
 
 router.get("/status/:id", jwtMiddleware, asyncHandler(async (req: Request, res: Response) => {
-    if(!hasProjectPermission(req.params.id, req.user)) {
-        res.status(403).send({ status: "error", message: "You do not have permission to create a project" });
+    if(!await hasProjectPermission(req.params.id, req.user)) {
+        res.status(403).send({ status: "error", message: "You do not have permission to access this project" });
         return;
     }
     const check = await checkAndUpdatePodStatus(req.params.id);
@@ -71,8 +67,8 @@ router.get("/status/:id", jwtMiddleware, asyncHandler(async (req: Request, res: 
 }));
 
 router.delete("/:id", jwtMiddleware, asyncHandler(async (req: Request, res: Response) => {
-    if(!hasProjectPermission(req.params.id, req.user)) {
-        res.status(403).send({ status: "error", message: "You do not have permission to create a project" });
+    if(!await hasProjectPermission(req.params.id, req.user)) {
+        res.status(403).send({ status: "error", message: "You do not have permission to delete this project" });
         return;
     }
     await deleteProject(req.params.id);

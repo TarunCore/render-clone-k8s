@@ -2,20 +2,16 @@ from flask import Flask, send_file, render_template_string, render_template
 
 app = Flask(__name__)
 
-# Root endpoint
 @app.route('/')
 def home():
-    return "Hello"
+    return "Hello This is Flask Project"
 
-# HTML endpoint
 @app.route('/html')
 def html():
     return render_template('main.html')
 
-# Image endpoint
 @app.route('/image')
 def image():
-    # Make sure 'sample.jpg' exists in the same directory
     return send_file("k8s.png", mimetype='image/png')
 
 if __name__ == '__main__':

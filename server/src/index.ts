@@ -13,6 +13,7 @@ import logger from "./logger";
 import jwt from "jsonwebtoken";
 import { User } from "./types/userType";
 import { hasProjectPermission } from "./services/authServices";
+import { JWT_SECRET } from "./middleware/auth";
 
 // TODO: Move to separate Logs Watch service 
 const wss = new Websocket.Server({ port: 8080 });
@@ -21,11 +22,16 @@ const wss = new Websocket.Server({ port: 8080 });
 const app = express();
 
 const PORT = process.env.PORT || 3000;
+const CORS_ORIGIN = process.env.CORS_ORIGIN || "http://localhost:3000";
 
 app.use(cors({
-  origin: "http://localhost:3000",
+  origin: CORS_ORIGIN,
   credentials: true,
 }));
+
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET must be set');
+}
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -75,7 +81,7 @@ wss.on('connection', (ws) => {
 
       let user: User;
       try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET as string);
+        const decoded = jwt.verify(token, JWT_SECRET as string);
         if (typeof decoded === 'string') {
           ws.send(JSON.stringify({ error: 'Invalid token' }));
           return;
@@ -119,7 +125,7 @@ wss.on('connection', (ws) => {
         );
       }catch(err){
         // console.error('Error streaming logs:', err);
-        ws.send(JSON.stringify({ error: 'Error streaming logs. Mostly container not created yet' }));
+        ws.send(JSON.stringify({ error: 'Error streaming logs. Build not started yet' }));
       }
     }
   });

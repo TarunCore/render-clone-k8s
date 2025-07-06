@@ -3,7 +3,7 @@
 A deployment service similar to [render.com](https://render.com), powered by **Kubernetes** and designed for simplicity and scalability.
 
 ---
-- The backend handles the deployment logic and interacts with Kubernetes to spin up pods for different user services.
+- The backend handles the deployment and interacts with Kubernetes to spin up pods for different user services.
 ---
 
 ![image](https://github.com/user-attachments/assets/de2aa9fd-eede-471a-96ae-99b4b3679ba0)
@@ -15,8 +15,8 @@ A deployment service similar to [render.com](https://render.com), powered by **K
 
 ### 1. Ingress Setup
 
-Set up NGINX Ingress Controller using Helm:
-
+Set up NGINX Ingress Controller using Helm (Specific to your provider):
+AKS ingress controller
 ```sh
 # Add the ingress-nginx Helm repo
 helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
